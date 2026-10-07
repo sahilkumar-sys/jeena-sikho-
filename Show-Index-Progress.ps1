@@ -1,8 +1,8 @@
 # Live progress counter for B-roll vector indexing. Read-only: it only reads
 # runtime\vector-cache\logs\progress-*.json written by vector-index\index_clips.py.
-param([int]$RefreshSeconds = 3, [switch]$Once)
+param([int]$RefreshSeconds = 3, [switch]$Once, [string]$ProjectRoot = $PSScriptRoot)
 $ErrorActionPreference = 'Stop'
-$logs = Join-Path $PSScriptRoot 'runtime\vector-cache\logs'
+$logs = Join-Path $ProjectRoot 'runtime\vector-cache\logs'
 
 function Show-Bar([double]$percent) {
   $width = 30
