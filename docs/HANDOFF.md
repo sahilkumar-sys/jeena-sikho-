@@ -19,7 +19,7 @@ Updated: 2026-10-07 (Asia/Kolkata)
 - Not built yet: fit check (Phase 2), Quality/Quantity modes, Envato-needed list and inbox import, n8n `broll_mode` field. Not verified: real planner LLM call, render, n8n. The live service runs the old service code until this branch is merged and `Start-Vector-Retrieval.cmd` is restarted (old code is compatible with the new index).
 - Details: `docs/sessions/2026-10-07-claude-broll-phase1.md`.
 - Phase 2 fit check (same branch): service `/verify` + `broll-fit-check.js` keep/move/swap/drop each planned video shot from stored 1 fps vectors; `plan.fit_check` and a Fit column in `broll-review.md`. Live-tested on port 8767 (carrot shot swapped to the harvesting clip, wrong lightning shot dropped). Needs merge + vector service restart to run in jobs. Details: `docs/sessions/2026-10-07-claude-broll-phase2-fit-check.md`.
-- Panchakarma index: many originals on E: are damaged (zero-filled, no `ftyp` header; ~12% of chunk 1). The run skips and lists them.
+- Panchakarma index stopped at 326/1305: the E: drive started returning I/O device errors (USB reset logged 16:11, 7 Oct). Do not resume or scan E: until the user has checked/backed up the drive; see `docs/BROLL-PLAN.md`. The indexer now stops itself after 8 consecutive read errors.
 
 ## Fresh-clone bootstrap continuation
 

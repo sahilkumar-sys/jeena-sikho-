@@ -25,6 +25,7 @@ INDEX_VERSION = "siglip2-base-1fps-v2"
 FRAMES_PER_SECOND = 1.0
 MAX_FRAMES = 120  # Long clips are sampled more sparsely to bound memory and time.
 EMBED_BATCH = 32
+SOURCE_FAILURE_LIMIT = 8  # consecutive OS read errors before stopping to protect a failing source drive
 PNG_END = b"IEND\xaeB`\x82"
 STAGE_MARKER = ".heygen-indexer-owned-v1"
 EXCLUDED_TOP_LEVEL_FOLDERS = {"all panchkarma therepy"}
@@ -555,7 +556,7 @@ def index_pending(db: sqlite3.Connection, ffmpeg: str, ffprobe: str, allow_cpu: 
         print(f"Staging in verified batches of up to {stage_max_bytes/2**30:.1f} GiB: {stage_root}", flush=True)
     torch, processor, model, device = load_model(allow_cpu)
     started = time.monotonic()
-    done_this_run = failures = 0
+    done_this_run = failures = source_failures = 0
     log_path.parent.mkdir(parents=True, exist_ok=True)
     batches = list(batch_groups(rows, stage_max_bytes)) if stage_root else [(rows, sum(row["size_bytes"] for row in rows))]
     with log_path.open("a", encoding="utf-8") as log:
@@ -581,9 +582,21 @@ def index_pending(db: sqlite3.Connection, ffmpeg: str, ffprobe: str, allow_cpu: 
                         try:
                             check_video_header(row["path"])
                             staged_paths[row["id"]] = stage_verified(row, batch_dir)
+                            source_failures = 0
                         except Exception as exc:
                             stage_errors[row["id"]] = str(exc)
                             print(f"    COPY FAILED: {exc}", flush=True)
+                            # Damaged files are content problems; OS errors in a row mean the drive stopped answering.
+                            source_failures = source_failures + 1 if isinstance(exc, OSError) else 0
+                            if source_failures >= SOURCE_FAILURE_LIMIT:
+                                message = (f"STOPPED: {source_failures} source read errors in a row; the source drive is not "
+                                           "responding. Nothing else was attempted. Check the drive/cable, then rerun to resume.")
+                                print("\n" + message, file=sys.stderr, flush=True)
+                                write_progress(progress_path, label=label, state="stopped: source drive not responding",
+                                               chunk=f"{batch_number}/{len(batches)}", done=complete + done_this_run,
+                                               total=total, percent=round(100 * (complete + done_this_run) / total, 1),
+                                               errors=failures, eta_seconds=None, current=row["relative_path"][-120:])
+                                return
                 for row in batch:
                     clip_started = time.monotonic()
                     try:
