@@ -4,22 +4,20 @@ Updated: 2026-10-07 (Asia/Kolkata)
 
 ## Start here for B-roll work
 
-- Read `docs/BROLL-PLAN.md`: user decisions, Phase 1–2 status (done, unmerged), Phase 3–5 specs (next), where the code and runtime are, and how to resume the Panchakarma index. Code is on branch `claude/broll-phase1` in worktree `C:\Users\js19187\Desktop\heygen-claude-broll`; the live folder does not contain it yet.
+- Read `docs/BROLL-PLAN.md`: user decisions, phase status, where the code and runtime are, and how to resume the Panchakarma index. Phases 1–2 are on `claude/broll-phase1` (worktree `C:\Users\js19187\Desktop\heygen-claude-broll`); Phases 3–5 are on `claude/broll-phase3` (worktree `C:\Users\js19187\Desktop\heygen-claude-broll-phase3`, built on top of phase1). Neither is merged; the live folder does not contain them yet.
 
 ## Agent context rule
 
 - Branch `claude/session-log-rule` adds a three-tier context rule to `AGENTS.md`: keep this file short and current, write one log per session in `docs/sessions/` (template in its README), and add `PROJECT.md` / vector-history entries only for material milestones. Details: `docs/sessions/2026-10-07-claude-session-log-rule.md`.
 - B-roll flow review: ten findings in `docs/sessions/2026-10-07-claude-broll-flow-review.md`.
 
-## B-roll Phase 1 (branch `claude/broll-phase1`, from `codex/subtitle-fix`)
+## B-roll (branches `claude/broll-phase1` → `claude/broll-phase3`, unmerged)
 
-- User decisions (see `docs/DECISIONS.md`): goal 100% video B-roll; at most 2 generated stills per reel, real product/social/hospital photos exempt; Quality/Quantity mode chosen in n8n; dropping a clip in a job inbox counts as approval.
-- Built: 1 fps re-index with JSON progress (`--progress-file`, `Show-Index-Progress.cmd`); phrase-based search windows; calibrated match floor 0.18 (`BROLL_MIN_MATCH_SCORE`); 3-second window scoring and in-points in the service; keyword fallback with `BROLL_RETRIEVAL_WARNING` when the vector service is down (planner never loses the video catalog); generated-still cap enforced in `validatePlan` (`BROLL_MAX_GENERATED_STILLS`, default 2); B-roll mix in `plan.coverage`; `broll-contact-sheet.jpg` + `broll-review.md` per job before render. Fixed: shortlist dropped clone-imported `U####` IDs. Plan cache version 9 forces re-planning.
-- Indexes (ignored, local): project gallery re-indexed 56/56 at 1 fps in `vector-index/local-clips.sqlite` (backup `vector-index/local-clips.pre-1fps-2026-10-07.sqlite`). E: `Envato Stocks` (Panchakarma excluded, ~5 GB, one chunk) indexed into `runtime/vector-cache/index/envato-1fps.sqlite`; E: was only read. E: clips remain unapproved and unused by production. At the user's request the `All panchkarma therepy` folder (1,305 videos, ~210 GB, 11 chunks) is being indexed separately into `runtime/vector-cache/index/panchkarma-1fps.sqlite` (progress: `runtime/vector-cache/logs/progress-panchkarma.json`); resumable if interrupted.
-- Not built yet: fit check (Phase 2), Quality/Quantity modes, Envato-needed list and inbox import, n8n `broll_mode` field. Not verified: real planner LLM call, render, n8n. The live service runs the old service code until this branch is merged and `Start-Vector-Retrieval.cmd` is restarted (old code is compatible with the new index).
-- Details: `docs/sessions/2026-10-07-claude-broll-phase1.md`.
-- Phase 2 fit check (same branch): service `/verify` + `broll-fit-check.js` keep/move/swap/drop each planned video shot from stored 1 fps vectors; `plan.fit_check` and a Fit column in `broll-review.md`. Live-tested on port 8767 (carrot shot swapped to the harvesting clip, wrong lightning shot dropped). Needs merge + vector service restart to run in jobs. Details: `docs/sessions/2026-10-07-claude-broll-phase2-fit-check.md`.
-- Panchakarma index stopped at 326/1305: the E: drive started returning I/O device errors (USB reset logged 16:11, 7 Oct). Do not resume or scan E: until the user has checked/backed up the drive; see `docs/BROLL-PLAN.md`. The indexer now stops itself after 8 consecutive read errors.
+- User decisions (`docs/DECISIONS.md`): goal 100% video B-roll; at most 2 generated stills per reel (real product/social/hospital photos exempt); Quality/Quantity chosen per run in n8n; a clip dropped in a job inbox counts as approval; in Quality mode only important moments count as missing and generated stills are not accepted.
+- Phase 1 (search): 1 fps re-index, phrase-based queries, match floor 0.18, window scoring, keyword fallback, still cap, B-roll mix, contact sheet + `broll-review.md`. Phase 2 (fit check): service `/verify` keeps/moves/swaps/drops each planned shot. Details: `docs/sessions/2026-10-07-claude-broll-phase1.md`, `...-phase2-fit-check.md`.
+- Phases 3–5: `--broll-mode`/`BROLL_MODE`/n8n `broll_mode` (default quantity). Quality stops before images/render with tracker status `needs_broll` (no new CSV column), `processed/<job>/envato-needed.md` and `broll-inbox/<job-id>/`; Quantity renders and lists optional clips. Clips dropped in the inbox are checked, copied to `broll-assets/inbox/`, approved as `E####` with `broll-assets/approval-log.jsonl` provenance, indexed via the service's new `/refresh`, and the job is re-planned. The n8n report shows a plain-English summary. 45 tests pass; isolated live `/refresh` check passed. Details: `docs/sessions/2026-10-07-claude-broll-phase3-5.md`.
+- Not verified: real planner LLM call (incl. `missing_beats`), render, n8n run. After merge restart `Start-Vector-Retrieval.cmd` (needed for `/verify` and `/refresh`; without it Quality mode fails clearly).
+- Indexes (ignored): project 56/56 at 1 fps; E: `Envato Stocks` 246/247 (`envato-1fps.sqlite`); Panchakarma stopped at 326/1305 because the E: drive dropped out (USB reset 16:11, 7 Oct); 22 files there are genuinely damaged. Do not resume or scan E: until the user has checked/backed up the drive. Indexed ≠ approved.
 
 ## Fresh-clone bootstrap continuation
 

@@ -16,8 +16,8 @@ Updated: 2026-10-07
 
 ## Next
 
-- B-roll (user goal: all-video, at most 2 generated stills). Phase 1 search fixes are on `claude/broll-phase1` awaiting review. Step 2 fit check is built on the same branch. Then: Step 3 Quality/Quantity modes (Quality stops with an Envato-needed list and `needs_broll` tracker status); Step 4 per-job `broll-inbox/` import that approves, indexes and re-plans; Step 5 n8n `broll_mode` field and non-error `needs_broll` report. Later: review the Extended library and E: as approval candidates; existing-still search.
-- E: reports Full Repair Needed (exFAT dirty). The user should back up and run `chkdsk E: /f` as administrator; agents only read E:.
+- B-roll (user goal: all-video, at most 2 generated stills). Phases 1–2 (search, fit check) on `claude/broll-phase1` and Phases 3–5 (Quality/Quantity in n8n, `needs_broll` + Envato list, inbox import with `/refresh`, n8n summary) on `claude/broll-phase3` are built and await review/merge. Next: merge, restart `Start-Vector-Retrieval.cmd`, run one isolated Quality-mode sample with an authorized non-Gemini planner (checks the new `missing_beats` output). Later: review the Extended library and E:/Panchakarma as approval candidates; existing-still search.
+- E: reports Full Repair Needed (exFAT dirty) and dropped out with I/O device errors during Panchakarma indexing (326/1305 done). The user should reconnect/check the drive and back up before `chkdsk E: /f`; agents only read E:. Resume the Panchakarma index afterwards (command in `docs/BROLL-PLAN.md`).
 
 - Verify one isolated subtitle sample with an authorized non-Gemini text provider, source-audio listening and representative rendered frames. Review larger spelling corrections that the conservative validator rejects; extend the glossary only with evidence. Existing completed videos need separate caption approval and re-rendering. Longer phrase grouping and general minimum readable duration remain separate editorial changes; conservative text checks cannot prove linguistic accuracy.
 - Review PR #1 and its GitHub Actions result before merging to `main`.
