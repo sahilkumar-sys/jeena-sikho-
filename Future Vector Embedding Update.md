@@ -1,26 +1,6 @@
-## 7 October 2026: fresh-clone retrieval path
+## 7 October 2026: Git publication and fresh-clone retrieval path
 
-The new `Bootstrap-From-Git.ps1` imports user-supplied, rights-confirmed B-roll into the project gallery, preserves nested folders, and records local ignored approval IDs. `runtime/clone/docker-compose.yml` builds a CPU SigLIP2 service; bootstrap indexes those clips with `vector-index/index_clips.py` and serves a local shortlist to n8n. The service matches approved clips by path relative to `broll-assets/`, so same-named clips in different folders remain distinct. A clip being indexed is not approval; only the local approval map and tracked approvals enter production retrieval. Four Node tests, PowerShell smoke, Compose static validation, and a read-only retrieval catalog load of 19 approved indexed clips passed. Docker's Linux engine was unavailable here, so CPU image build, public model download, indexing and live search are not end-to-end verified. E: and Extended galleries remain separate and unapproved. See `docs/CLONE-SETUP.md` and `docs/HANDOFF.md`.
-
-## 7 October 2026: fresh-clone retrieval prerequisite
-
-The GitHub source clone does not include `vector-index/local-clips.sqlite`, the SigLIP2 model, bundled Python, or local video files. `docs/CLONE-SETUP.md` now lists these prerequisites explicitly. Code-only Node tests can run from a clone; vector retrieval and rendering require the separately controlled portable asset/runtime copy. No retrieval code, index, or E: gallery was changed by this documentation clarification.
-
-## 7 October 2026: review PR status
-
-Multi-agent Git setup is in GitHub PR [#1](https://github.com/sahilkumar-sys/jeena-sikho-/pull/1), open and unmerged. It does not change vector retrieval, E: indexes or media approval. Review CI and the PR before merging.
-
-## 7 October 2026: GitHub publication update
-
-The user granted GitHub write access and both `main` and `codex/multi-agent-setup` were published to the authorized public repository on 7 October. The setup branch awaits PR review. This changed no retrieval code, local indexes, E: approvals, or video output.
-
-## 7 October 2026: GitHub access gate
-
-The user authorized publishing this project to the public `sahilkumar-sys/jeena-sikho-` GitHub repository, but the first push failed with HTTP 403 because the PC's configured `shaluji1111` account lacks write access. No branch has been published. The Git remote is connected locally; `docs/HANDOFF.md` has the retry steps after access is granted. Retrieval code and indexes were not changed.
-
-## 7 October 2026: collaboration handoff
-
-The live project root now has local Git history. `main` holds source baseline `bce4f21`; multi-agent setup is on `codex/multi-agent-setup` awaiting PR review. Read root `AGENTS.md`, `docs/ARCHITECTURE.md`, and `docs/HANDOFF.md` for current branch, commands, provider boundary, and remaining work. The index database, model, local media and runtime are intentionally outside Git; they remain in the controlled portable project copy. Retrieval implementation and E: approval status below are unchanged. The vector service was unavailable during this documentation setup, so retrieval was not revalidated.
+The project is in Git (`main` baseline `bce4f21`; setup on `codex/multi-agent-setup`, PR [#1](https://github.com/sahilkumar-sys/jeena-sikho-/pull/1) open and unmerged) and published with the user's authorization to the public `sahilkumar-sys/jeena-sikho-` repository. The SQLite index, SigLIP2 model, bundled Python and local media are intentionally outside Git; a plain clone cannot run retrieval without either the controlled portable copy or the new bootstrap. `Bootstrap-From-Git.ps1` imports user-supplied, rights-confirmed B-roll into the project gallery (preserving nested folders), records ignored local approval IDs, builds a CPU SigLIP2 service from `runtime/clone/docker-compose.yml`, indexes those clips with `vector-index/index_clips.py`, and serves a shortlist to n8n. The service matches approved clips by path relative to `broll-assets/`, so same-named clips in different folders stay distinct. Indexing is not approval: only tracked approvals and the local approval map enter production retrieval. Offline tests and a read-only catalog load of 19 approved indexed clips passed; Docker's Linux engine was unavailable, so CPU image build, model download, indexing and live search are not end-to-end verified. E: and Extended galleries remain separate and unapproved. See `docs/CLONE-SETUP.md` and `docs/HANDOFF.md`.
 
 ## 7 October 2026: user-specified sourcing order
 

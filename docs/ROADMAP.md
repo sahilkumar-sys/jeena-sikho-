@@ -10,6 +10,7 @@ Updated: 2026-10-07
 - Opened PR [#1](https://github.com/sahilkumar-sys/jeena-sikho-/pull/1) for review; it is unmerged.
 - Documented the exact fresh-clone boundary and required controlled asset copy in `docs/CLONE-SETUP.md`.
 - Added a Windows fresh-clone bootstrap that imports supplied media, preserves nested B-roll folders, creates private non-Gemini settings after explicit image-provider authorization, and prepares Docker-based n8n and optional CPU vector retrieval. Added local approved-media overlays and offline PR tests.
+- Added a tiered agent-context rule (short `docs/HANDOFF.md`, per-session logs in `docs/sessions/`, milestone-only history entries) and condensed duplicate 7 October history entries (branch `claude/session-log-rule`).
 
 ## Next
 
