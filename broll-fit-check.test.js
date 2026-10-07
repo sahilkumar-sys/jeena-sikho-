@@ -28,6 +28,13 @@ test('the phrase checked is the one spoken when the shot starts', () => {
   assert.equal(phraseFor({ start_seconds: 3.2 }, queries), 'a woman drinking warm water in the kitchen');
 });
 
+test('a shot starting on a phrase boundary is checked against the new phrase, not the previous one', () => {
+  // Real case (diabetes sample): junk food 20-23.4 s, Ayurveda from 23.5 s; herbal clip placed at 23.48 s.
+  const touching = [{ at: 20, end: 23.4, text: 'a person eating junk food' }, { at: 23.5, end: 25.8, text: 'ayurvedic herbs' }];
+  assert.equal(phraseFor({ start_seconds: 23.48 }, touching), 'ayurvedic herbs');
+  assert.equal(phraseFor({ start_seconds: 23.3 }, touching), 'a person eating junk food');
+});
+
 test('fit check keeps good shots, moves, swaps, drops and flags weak ones', async () => {
   const previous = { min: process.env.BROLL_MIN_MATCH_SCORE, drop: process.env.BROLL_DROP_BELOW_SCORE };
   delete process.env.BROLL_MIN_MATCH_SCORE; delete process.env.BROLL_DROP_BELOW_SCORE;

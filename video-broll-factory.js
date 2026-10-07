@@ -1368,4 +1368,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createShortCueSrt, registerDiscoveredVideos, rowAllowsProcessing, normalize, stableJobId, probe, sourceOrientation, preparePortraitSource, validatePlan, targetImageCount, slotStart, buildManifest, planBroll, imageSettings, generateImage, transcribe, finishJob, applyResultToRow, batchReport, importJobInbox, approvalFingerprint };
+module.exports = { createShortCueSrt, registerDiscoveredVideos, rowAllowsProcessing, normalize, stableJobId, probe, sourceOrientation, preparePortraitSource, validatePlan, targetImageCount, slotStart, buildManifest, planBroll, imageSettings, generateImage, transcribe, finishJob, applyResultToRow, batchReport, importJobInbox, approvalFingerprint, runBatch };

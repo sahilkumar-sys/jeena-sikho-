@@ -2,7 +2,7 @@
 // video shot will show with the spoken phrase at that moment, using the stored
 // 1 fps SigLIP2 frame vectors. Keep, move within the clip, swap to a better
 // approved clip, or drop a clearly wrong shot so the presenter stays on screen.
-const { minMatchScore } = require('./vector-retrieval-client');
+const { minMatchScore, phraseAt } = require('./vector-retrieval-client');
 
 const MOVE_GAIN = 0.03; // move the in-point only for a clear improvement
 const DEFAULT_DROP_BELOW = 0.14; // calibration: non-matches cluster around 0.12
@@ -15,7 +15,7 @@ function dropBelowScore() {
 // The English visual query whose spoken phrase contains the shot start.
 function phraseFor(shot, queries) {
   const start = Number(shot.start_seconds ?? shot.start ?? shot.start_hint_seconds);
-  const inside = queries.find(q => start >= q.at - 0.25 && start <= (q.end ?? q.at) + 0.25);
+  const inside = phraseAt(queries, start);
   const nearest = inside || [...queries].sort((a, b) => Math.abs(a.at - start) - Math.abs(b.at - start))[0];
   return nearest?.text || String(shot.match_reason || '').slice(0, 300);
 }

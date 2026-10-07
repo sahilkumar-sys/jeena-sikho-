@@ -9,7 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const { atomicWrite, writeJson } = require('./factory-state');
-const { queriesFromWords } = require('./vector-retrieval-client');
+const { queriesFromWords, phraseAt } = require('./vector-retrieval-client');
 
 const MODES = ['quality', 'quantity'];
 const DEFAULT_MODE = 'quantity';
@@ -54,9 +54,6 @@ function searchTerms(english) {
   return [...new Set(terms)];
 }
 
-function phraseWindow(phrases, start) {
-  return phrases.find(p => start >= p.at - 0.25 && start <= p.end + 0.25) || null;
-}
 
 // The important moments without a good approved video, in time order.
 // mode only changes whether a generated still counts (quality) or is an optional upgrade (quantity).
@@ -64,7 +61,7 @@ function missingBeats(plan, transcriptWords, duration) {
   const words = transcriptWords || [];
   const phrases = queriesFromWords(words, duration);
   const english = Array.isArray(plan?.retrieval?.queries) ? plan.retrieval.queries : [];
-  const englishAt = start => (english.find(q => start >= q.at - 0.25 && start <= (q.end ?? q.at) + 0.25) || {}).text || '';
+  const englishAt = start => phraseAt(english, start)?.text || '';
   const raw = [];
   for (const d of plan?.fit_check?.details || []) {
     if (!['dropped', 'weak'].includes(d.action) || !Number.isFinite(d.start_seconds)) continue;
@@ -92,7 +89,7 @@ function missingBeats(plan, transcriptWords, duration) {
     beats.push(beat);
   }
   return beats.map((beat, index) => {
-    const phrase = phraseWindow(phrases, beat.start);
+    const phrase = phraseAt(phrases, beat.start);
     const length = Math.min(4.2, Math.max(2.1, beat.length));
     // Through the end of the spoken phrase, so the list shows the whole idea, never another phrase's start.
     const end = Math.min(duration, Math.max(beat.start + length, Math.min(phrase?.end ?? 0, beat.start + 7)));
@@ -101,7 +98,8 @@ function missingBeats(plan, transcriptWords, duration) {
       start_seconds: Number(beat.start.toFixed(2)),
       end_seconds: Number(end.toFixed(2)),
       time: `${clock(beat.start)}-${clock(end)}`,
-      spoken: spokenBetween(words, beat.start, end) || phrase?.text || '',
+      // The words of this phrase only, not the start of the next one.
+      spoken: spokenBetween(words, beat.start, phrase && phrase.end > beat.start + 0.5 ? phrase.end + 0.01 : end) || phrase?.text || '',
       english: beat.english,
       search_terms: searchTerms(beat.english),
       min_clip_seconds: Math.ceil(length) + 2, // room to pick the best part

@@ -44,6 +44,15 @@ function queriesFromWords(words, duration) {
     text: group.slice(0, 30).map(w => String(w.text).trim()).join(' '),
   }));
 }
+// The spoken phrase at a moment: the phrase that contains it, else (within 0.25 s, for
+// starts in the gap between phrases) the latest one that has started. A shot starting on
+// a new phrase must not be judged against the previous phrase.
+function phraseAt(phrases, start) {
+  const list = phrases || [];
+  const latest = items => items.reduce((best, p) => (!best || p.at > best.at ? p : best), null);
+  return latest(list.filter(p => start >= p.at && start <= (p.end ?? p.at)))
+    || latest(list.filter(p => start >= p.at - 0.25 && start <= (p.end ?? p.at) + 0.25));
+}
 function minMatchScore() {
   const value = Number(process.env.BROLL_MIN_MATCH_SCORE);
   return process.env.BROLL_MIN_MATCH_SCORE && Number.isFinite(value) ? value : DEFAULT_MIN_MATCH_SCORE;
@@ -106,4 +115,4 @@ async function refreshIndex(url = process.env.BROLL_RETRIEVAL_URL || 'http://hos
   if (!response.ok && !data.error) throw Error(`refresh HTTP ${response.status}`);
   return data;
 }
-module.exports = { queriesFromWords, available, shortlistQueries, shortlist, formatShortlist, minMatchScore, verifyShots, refreshIndex, DEFAULT_MIN_MATCH_SCORE };
+module.exports = { phraseAt, queriesFromWords, available, shortlistQueries, shortlist, formatShortlist, minMatchScore, verifyShots, refreshIndex, DEFAULT_MIN_MATCH_SCORE };
