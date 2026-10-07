@@ -125,14 +125,16 @@ test('a plan may use at most two generated stills', () => {
 test('review list numbers shots and labels generated stills clearly', () => {
   const { reviewMarkdown, thumbnailTime } = require('./broll-review-sheet');
   const md = reviewMarkdown([
-    { type: 'video', asset_id: 'B036', path: 'x.mp4', start: 1, duration: 3, spoken_context: 'मछली | पकड़ना', match_reason: 'bird fishing' },
+    { type: 'video', asset_id: 'B036', path: 'x.mp4', start: 1, duration: 3, spoken_context: 'मछली | पकड़ना', match_reason: 'bird fishing',
+      fit: { action: 'swapped', from_asset: 'B037', score_before: 0.12, score_after: 0.33 } },
     { type: 'image', category: 'product', product_id: 79, path: 'p.jpg', start: 6.5, duration: 2.5 },
     { type: 'image', category: 'generated', path: 'g.png', start: 11, duration: 3, prompt: 'warm water' },
   ], { coverage: { video_shots: 1, real_photo_shots: 1, generated_still_shots: 1, video_share_of_broll: 0.3333 }, retrieval: { source: 'keyword', no_match_phrases: 2, warning: 'vector search unavailable; keyword fallback used' } });
   assert.match(md, /videos: 1 \| real photos: 1 \| generated stills: 1 \| video share: 33%/);
   assert.match(md, /WARNING: vector search unavailable/);
-  assert.match(md, /\| 1 \| 0:01.0-0:04.0 \| video B036 \| मछली \/ पकड़ना \| bird fishing \|/);
-  assert.match(md, /\| 3 \| 0:11.0-0:14.0 \| GENERATED STILL \| {2}\| warm water \|/);
+  assert.match(md, /Fit check: not run/);
+  assert.match(md, /\| 1 \| 0:01.0-0:04.0 \| video B036 \| 0.33 swapped from B037 \| मछली \/ पकड़ना \| bird fishing \|/);
+  assert.match(md, /\| 3 \| 0:11.0-0:14.0 \| GENERATED STILL \| {2}\| {2}\| warm water \|/);
   // Mid-shot thumbnail, clamped like the renderer's seek.
   assert.equal(thumbnailTime({ in_point_seconds: 2, duration: 3 }, 20), 3.5);
   assert.equal(thumbnailTime({ in_point_seconds: 19, duration: 3 }, 10), 8.4);

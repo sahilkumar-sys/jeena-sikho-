@@ -14,6 +14,8 @@ Updated: 2026-10-07 (Asia/Kolkata)
 - Indexes (ignored, local): project gallery re-indexed 56/56 at 1 fps in `vector-index/local-clips.sqlite` (backup `vector-index/local-clips.pre-1fps-2026-10-07.sqlite`). E: `Envato Stocks` (Panchakarma excluded, ~5 GB, one chunk) indexed into `runtime/vector-cache/index/envato-1fps.sqlite`; E: was only read. E: clips remain unapproved and unused by production. At the user's request the `All panchkarma therepy` folder (1,305 videos, ~210 GB, 11 chunks) is being indexed separately into `runtime/vector-cache/index/panchkarma-1fps.sqlite` (progress: `runtime/vector-cache/logs/progress-panchkarma.json`); resumable if interrupted.
 - Not built yet: fit check (Phase 2), Quality/Quantity modes, Envato-needed list and inbox import, n8n `broll_mode` field. Not verified: real planner LLM call, render, n8n. The live service runs the old service code until this branch is merged and `Start-Vector-Retrieval.cmd` is restarted (old code is compatible with the new index).
 - Details: `docs/sessions/2026-10-07-claude-broll-phase1.md`.
+- Phase 2 fit check (same branch): service `/verify` + `broll-fit-check.js` keep/move/swap/drop each planned video shot from stored 1 fps vectors; `plan.fit_check` and a Fit column in `broll-review.md`. Live-tested on port 8767 (carrot shot swapped to the harvesting clip, wrong lightning shot dropped). Needs merge + vector service restart to run in jobs. Details: `docs/sessions/2026-10-07-claude-broll-phase2-fit-check.md`.
+- Panchakarma index: many originals on E: are damaged (zero-filled, no `ftyp` header; ~12% of chunk 1). The run skips and lists them.
 
 ## Fresh-clone bootstrap continuation
 

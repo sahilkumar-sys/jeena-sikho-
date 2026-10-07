@@ -86,4 +86,14 @@ async function shortlistQueries(queries, url = process.env.BROLL_RETRIEVAL_URL |
   }
 }
 async function shortlist(words, duration, url) { return shortlistQueries(queriesFromWords(words, duration), url); }
-module.exports = { queriesFromWords, available, shortlistQueries, shortlist, formatShortlist, minMatchScore, DEFAULT_MIN_MATCH_SCORE };
+// Fit check: score the exact seconds each planned shot shows (see broll-fit-check.js).
+async function verifyShots(shots, excludeIds = [], url = process.env.BROLL_RETRIEVAL_URL || 'http://host.docker.internal:8766/search') {
+  const endpoint = new URL(url); endpoint.pathname = '/verify';
+  const response = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ shots, exclude_ids: [...excludeIds], top_k: 5 }), signal: AbortSignal.timeout(15000) });
+  if (!response.ok) throw Error(`fit check HTTP ${response.status}`);
+  const data = await response.json();
+  if (!Array.isArray(data.results) || data.results.length !== shots.length) throw Error('invalid fit check response');
+  return data.results;
+}
+module.exports = { queriesFromWords, available, shortlistQueries, shortlist, formatShortlist, minMatchScore, verifyShots, DEFAULT_MIN_MATCH_SCORE };

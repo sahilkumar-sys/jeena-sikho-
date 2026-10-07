@@ -20,7 +20,7 @@ jobs:
           node --check video-broll-factory.js
           node --check publishing/meta-publisher.js
       - name: Run focused tests
-        run: node --test --test-isolation=none caption-grammar.test.js local-media-catalog.test.js broll-retrieval.test.js
+        run: node --test --test-isolation=none caption-grammar.test.js local-media-catalog.test.js broll-retrieval.test.js broll-fit-check.test.js
 
   windows-bootstrap:
     runs-on: windows-latest

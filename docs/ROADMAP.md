@@ -16,7 +16,7 @@ Updated: 2026-10-07
 
 ## Next
 
-- B-roll (user goal: all-video, at most 2 generated stills). Phase 1 search fixes are on `claude/broll-phase1` awaiting review. Then: Step 2 fit check of the chosen clip seconds; Step 3 Quality/Quantity modes (Quality stops with an Envato-needed list and `needs_broll` tracker status); Step 4 per-job `broll-inbox/` import that approves, indexes and re-plans; Step 5 n8n `broll_mode` field and non-error `needs_broll` report. Later: review the Extended library and E: as approval candidates; existing-still search.
+- B-roll (user goal: all-video, at most 2 generated stills). Phase 1 search fixes are on `claude/broll-phase1` awaiting review. Step 2 fit check is built on the same branch. Then: Step 3 Quality/Quantity modes (Quality stops with an Envato-needed list and `needs_broll` tracker status); Step 4 per-job `broll-inbox/` import that approves, indexes and re-plans; Step 5 n8n `broll_mode` field and non-error `needs_broll` report. Later: review the Extended library and E: as approval candidates; existing-still search.
 - E: reports Full Repair Needed (exFAT dirty). The user should back up and run `chkdsk E: /f` as administrator; agents only read E:.
 
 - Verify one isolated subtitle sample with an authorized non-Gemini text provider, source-audio listening and representative rendered frames. Review larger spelling corrections that the conservative validator rejects; extend the glossary only with evidence. Existing completed videos need separate caption approval and re-rendering. Longer phrase grouping and general minimum readable duration remain separate editorial changes; conservative text checks cannot prove linguistic accuracy.

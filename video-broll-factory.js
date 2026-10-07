@@ -20,6 +20,7 @@ const vectorRetrieval = require('./vector-retrieval-client');
 const { convertSrtToAss } = require('./srt-to-styled-ass');
 const { assignSpeechDurations } = require('./speech-duration-planner');
 const { buildReviewSheet } = require('./broll-review-sheet');
+const fitCheck = require('./broll-fit-check');
 const { correctionKey, correctCaptionGrammar, parseSrtCues } = require('./caption-grammar');
 const { isCaptionAbbreviation, endsCaptionSentence } = require('./caption-policy');
 
@@ -582,10 +583,31 @@ async function retrieveShortlist(transcript, duration, settings, previousUses) {
   }
   if (await vectorRetrieval.available()) {
     const vector = await vectorRetrieval.shortlistQueries(queries);
-    if (vector) return vector;
+    if (vector) return { ...vector, queries };
   }
   process.stdout.write('BROLL_RETRIEVAL_WARNING=vector search service unavailable; using keyword shortlist from approved clip names. Start Start-Vector-Retrieval.cmd for visual search.\n');
-  return { ...vectorRetrieval.formatShortlist(localMedia.keywordShortlist(queries, previousUses), 'keyword'), warning: 'vector search unavailable; keyword fallback used' };
+  return { ...vectorRetrieval.formatShortlist(localMedia.keywordShortlist(queries, previousUses), 'keyword'), queries, warning: 'vector search unavailable; keyword fallback used' };
+}
+
+// Phase 2: check the exact seconds of each planned video shot against its spoken phrase.
+// Never fails the plan: on any problem the unchecked plan is kept and the reason recorded.
+async function applyFitCheck(plan, retrieved, transcript, duration) {
+  if (retrieved?.source !== 'vector' || !retrieved.queries?.length) {
+    plan.fit_check = { status: 'skipped', reason: 'vector search service unavailable' };
+    process.stdout.write('BROLL_FIT_CHECK_WARNING=skipped because the vector search service is unavailable\n');
+    return plan;
+  }
+  try {
+    const { images, report } = await fitCheck.fitCheckPlan(plan, retrieved.queries, vectorRetrieval.verifyShots);
+    const checked = validatePlan({ ...plan, images }, transcript, duration);
+    checked.fit_check = report;
+    process.stdout.write(`BROLL_FIT_CHECK=kept:${report.kept ?? 0} moved:${report.moved ?? 0} swapped:${report.swapped ?? 0} dropped:${report.dropped ?? 0} weak:${report.weak ?? 0}\n`);
+    return checked;
+  } catch (error) {
+    plan.fit_check = { status: 'failed', reason: String(error.message || error).slice(0, 200) };
+    process.stdout.write(`BROLL_FIT_CHECK_WARNING=${plan.fit_check.reason}\n`);
+    return plan;
+  }
 }
 
 async function planBroll(transcript, duration, workDir) {
@@ -656,8 +678,9 @@ async function planBroll(transcript, duration, workDir) {
       content = response.choices?.[0]?.message?.content || '';
     }
     try {
-      const plan = validatePlan(JSON.parse(cleanJsonText(content)), transcript, duration);
-      plan.retrieval = { source: retrieved?.source || 'none', query_count: retrieved?.query_count || 0, no_match_phrases: retrieved?.weak_windows || 0, min_match_score: vectorRetrieval.minMatchScore(), warning: retrieved?.warning || null };
+      const validated = validatePlan(JSON.parse(cleanJsonText(content)), transcript, duration);
+      validated.retrieval = { source: retrieved?.source || 'none', query_count: retrieved?.query_count || 0, no_match_phrases: retrieved?.weak_windows || 0, min_match_score: vectorRetrieval.minMatchScore(), warning: retrieved?.warning || null };
+      const plan = await applyFitCheck(validated, retrieved, transcript, duration);
       writeJson(path.join(workDir, 'broll-plan.json'), plan);
       return plan;
     } catch (error) {
@@ -794,7 +817,7 @@ async function generateBrollImages(plan, transcript, duration, workDir, cache, s
     const imageDuration = Math.min(item.duration_seconds, MAX_BROLL_DURATION_SECONDS, duration - start);
     const local = localMedia.resolve(item);
     if (local) {
-      placements.push({ ...local, in_point_seconds: item.in_point_seconds ?? null, start: Number(start.toFixed(3)), duration: Number(imageDuration.toFixed(3)), anchor: item.anchor_text || '', spoken_context: item.spoken_context || '', timing_reason: item.timing_reason || '', timing_boundary_word: item.timing_boundary_word || null, match_reason: item.match_reason || '', transition: transitionForIndex(index) });
+      placements.push({ ...local, in_point_seconds: item.in_point_seconds ?? null, start: Number(start.toFixed(3)), duration: Number(imageDuration.toFixed(3)), anchor: item.anchor_text || '', spoken_context: item.spoken_context || '', timing_reason: item.timing_reason || '', timing_boundary_word: item.timing_boundary_word || null, match_reason: item.match_reason || '', fit: item.fit || null, transition: transitionForIndex(index) });
       process.stdout.write(`LOCAL_MEDIA=${index + 1}/${plan.images.length}:${local.asset_id || local.product_id}\n`);
       continue;
     }
@@ -1010,7 +1033,7 @@ async function processVideo(videoPath, outputRoot, controlRow, onStage = () => {
   const vectorStat = fs.existsSync(vectorIndex) ? fs.statSync(vectorIndex) : null;
   const localApprovals = path.join(__dirname, 'local-approved-stock-ids.json');
   const localAssetMap = path.join(__dirname, 'broll-assets', 'local-asset-map.json');
-  const planKey = fingerprint({version: 9, visual_policy: 'video-goal-max-generated-stills-phrase-search', max_generated_stills: maxGeneratedStills(), min_match_score: vectorRetrieval.minMatchScore(), source: sourceHash, transcript: cache.transcript.sha256, duration: info.duration, provider: process.env.LLM_PROVIDER || 'openai', url: process.env.LLM_API_URL || '', model: process.env.LLM_MODEL || '', approval_ids: hash(fs.readFileSync(path.join(__dirname, 'approved-stock-ids.json'))), local_approval_ids: fs.existsSync(localApprovals) ? hash(fs.readFileSync(localApprovals)) : null, local_asset_map: fs.existsSync(localAssetMap) ? hash(fs.readFileSync(localAssetMap)) : null, vector_index: vectorStat ? [vectorStat.size, vectorStat.mtimeMs] : null, transition: process.env.IMAGE_TRANSITION_SECONDS || '0.35'});
+  const planKey = fingerprint({version: 10, visual_policy: 'video-goal-max-generated-stills-phrase-search-fit-check', drop_below_score: fitCheck.dropBelowScore(), max_generated_stills: maxGeneratedStills(), min_match_score: vectorRetrieval.minMatchScore(), source: sourceHash, transcript: cache.transcript.sha256, duration: info.duration, provider: process.env.LLM_PROVIDER || 'openai', url: process.env.LLM_API_URL || '', model: process.env.LLM_MODEL || '', approval_ids: hash(fs.readFileSync(path.join(__dirname, 'approved-stock-ids.json'))), local_approval_ids: fs.existsSync(localApprovals) ? hash(fs.readFileSync(localApprovals)) : null, local_asset_map: fs.existsSync(localAssetMap) ? hash(fs.readFileSync(localAssetMap)) : null, vector_index: vectorStat ? [vectorStat.size, vectorStat.mtimeMs] : null, transition: process.env.IMAGE_TRANSITION_SECONDS || '0.35'});
   let plan;
   if (process.env.REUSE_EXISTING_PLAN !== 'false' && await cachedFile(planPath, cache.plan, planKey)) {
     onStage('plan_reused');

@@ -31,6 +31,18 @@ function describe(placement) {
   if (placement.category === 'generated') return 'GENERATED STILL';
   return `real photo ${placement.asset_id || placement.category}`;
 }
+function fitLabel(fit) {
+  if (!fit) return '';
+  if (fit.action === 'not_indexed') return 'not checked (not indexed)';
+  const score = fit.score_after ?? fit.score_before;
+  const what = fit.action === 'swapped' ? `swapped from ${fit.from_asset}` : fit.action === 'moved' ? `moved from ${Number(fit.from_in_point || 0).toFixed(1)}s` : fit.action === 'weak' ? 'WEAK - review' : fit.action;
+  return `${Number.isFinite(score) ? score.toFixed(2) + ' ' : ''}${what}`;
+}
+function fitSummary(report) {
+  if (!report) return 'Fit check: not run';
+  if (report.status !== 'checked') return `Fit check: ${report.status}${report.reason ? ` (${report.reason})` : ''}`;
+  return `Fit check: kept ${report.kept}, moved ${report.moved}, swapped ${report.swapped}, dropped ${report.dropped}, weak ${report.weak} (keep at ${report.keep_score}, drop below ${report.drop_below_score})`;
+}
 function reviewMarkdown(placements, plan) {
   const mix = plan?.coverage || {};
   const retrieval = plan?.retrieval || {};
@@ -39,14 +51,15 @@ function reviewMarkdown(placements, plan) {
     '',
     `Shots: ${placements.length} | videos: ${mix.video_shots ?? '?'} | real photos: ${mix.real_photo_shots ?? '?'} | generated stills: ${mix.generated_still_shots ?? '?'} | video share: ${mix.video_share_of_broll !== undefined ? Math.round(mix.video_share_of_broll * 100) + '%' : '?'}`,
     `Search: ${retrieval.source || 'unknown'}${retrieval.no_match_phrases ? ` | phrases with no good video: ${retrieval.no_match_phrases}` : ''}${retrieval.warning ? ` | WARNING: ${retrieval.warning}` : ''}`,
+    fitSummary(plan?.fit_check),
     '',
     'Thumbnails in broll-contact-sheet.jpg are numbered left to right, top to bottom.',
     '',
-    '| # | Time | Media | Spoken words | Why chosen |',
-    '| --- | --- | --- | --- | --- |',
+    '| # | Time | Media | Fit | Spoken words | Why chosen |',
+    '| --- | --- | --- | --- | --- | --- |',
   ];
   const cell = value => String(value || '').replace(/\|/g, '/').replace(/\s+/g, ' ').trim();
-  placements.forEach((p, i) => lines.push(`| ${i + 1} | ${clock(p.start)}-${clock(p.start + p.duration)} | ${describe(p)} | ${cell(p.spoken_context || p.anchor)} | ${cell(p.match_reason || p.prompt)} |`));
+  placements.forEach((p, i) => lines.push(`| ${i + 1} | ${clock(p.start)}-${clock(p.start + p.duration)} | ${describe(p)} | ${fitLabel(p.fit)} | ${cell(p.spoken_context || p.anchor)} | ${cell(p.match_reason || p.prompt)} |`));
   return lines.join('\n') + '\n';
 }
 function buildReviewSheet(placements, plan, workDir) {

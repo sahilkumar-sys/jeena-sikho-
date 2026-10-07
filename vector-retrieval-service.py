@@ -32,34 +32,80 @@ def tokens(value):
 SHOT_WINDOW_SECONDS = 3.0
 
 
-def best_window(frame_scores, frame_times):
-    """Best mean score over a typical shot length; returns (start frame index, score).
+def is_dense(times) -> bool:
+    return len(times) > 1 and float(np.median(np.diff(times))) <= 1.5
+
+
+def best_window(frame_scores, frame_times, window=SHOT_WINDOW_SECONDS):
+    """Best mean score over a shot-length window; returns (start frame index, score).
 
     Dense (1 fps) indexes reward a clip whose matching action lasts a whole shot,
     not a single lucky frame. Sparse legacy indexes fall back to the best frame.
     """
     times = np.asarray(frame_times, dtype=float)
-    if len(frame_scores) < 2 or len(times) != len(frame_scores) or np.median(np.diff(times)) > 1.5:
+    if len(frame_scores) < 2 or len(times) != len(frame_scores) or not is_dense(times):
         index = int(np.argmax(frame_scores))
         return index, float(frame_scores[index])
     best_index, best_score = 0, -1e9
     # Only windows that still have a full shot of footage after them (whole clip if shorter).
-    last_start = max(times[0], times[-1] - SHOT_WINDOW_SECONDS + 1.0)
+    last_start = max(times[0], times[-1] - window + 1.0)
     for start in range(len(frame_scores)):
         if times[start] > last_start:
             break
-        end = int(np.searchsorted(times, times[start] + SHOT_WINDOW_SECONDS, side="left"))
+        end = int(np.searchsorted(times, times[start] + window, side="left"))
         score = float(np.mean(frame_scores[start:max(end, start + 1)]))
         if score > best_score:
             best_index, best_score = start, score
     return best_index, best_score
 
 
+def window_at(frame_scores, frame_times, start, duration):
+    """Mean score of the frames a shot starting at `start` would actually show."""
+    times = np.asarray(frame_times, dtype=float)
+    inside = (times >= start - 0.01) & (times < start + duration)
+    if inside.any() and is_dense(times):
+        return float(np.mean(frame_scores[inside]))
+    return float(frame_scores[int(np.argmin(np.abs(times - (start + duration / 2))))])
+
+
+def blended(visual, clip, qvec, qtokens):
+    """Same 0.7 visual / 0.1 title / 0.2 keyword blend for search and fit checks."""
+    title = float(clip["title_vec"] @ qvec)
+    lexical = len(qtokens & tokens(clip["title"] + " " + clip["description"])) / max(1, len(qtokens))
+    return 0.7 * visual + 0.1 * title + 0.2 * lexical
+
+
+def verify_shot(shot, qvec, clips_by_id, exclude, top_k):
+    """Score the exact seconds a planned shot will show, the best part of the same
+    clip, and the best other approved clips for the same spoken phrase."""
+    qtokens = tokens(shot["text"])
+    duration = max(1.0, float(shot.get("duration") or SHOT_WINDOW_SECONDS))
+    result = {"id": shot.get("id"), "asset_id": shot.get("asset_id"), "indexed": False}
+    clip = clips_by_id.get(shot.get("asset_id"))
+    if clip is not None:
+        scores = clip["frames"] @ qvec
+        start = float(shot.get("in_point") or 0)
+        index, best_visual = best_window(scores, clip["frame_times"], duration)
+        result.update(indexed=True,
+                      current_score=round(blended(window_at(scores, clip["frame_times"], start, duration), clip, qvec, qtokens), 4),
+                      best_in_point=in_point(clip["frame_times"], index),
+                      best_score=round(blended(best_visual, clip, qvec, qtokens), 4))
+    alternatives = []
+    for other in clips_by_id.values():
+        if other["id"] == shot.get("asset_id") or other["id"] in exclude:
+            continue
+        index, visual = best_window(other["frames"] @ qvec, other["frame_times"], duration)
+        alternatives.append((blended(visual, other, qvec, qtokens), other, index))
+    alternatives.sort(key=lambda x: x[0], reverse=True)
+    result["alternatives"] = [{"id": c["id"], "title": c["title"], "score": round(s, 4),
+                               "in_point_seconds": in_point(c["frame_times"], i)} for s, c, i in alternatives[:top_k]]
+    return result
+
+
 def in_point(frame_times, index):
     """Dense windows start at their own first frame; sparse indexes keep the old lead-in."""
     times = list(frame_times)
-    dense = len(times) > 1 and float(np.median(np.diff(times))) <= 1.5
-    return round(max(0.0, times[index] - (0.0 if dense else 1.2)), 2)
+    return round(max(0.0, times[index] - (0.0 if is_dense(times) else 1.2)), 2)
 
 
 def load_clips():
@@ -104,11 +150,19 @@ def main():
     from transformers import AutoModel, AutoProcessor
 
     clips = load_clips()
+    clips_by_id = {clip["id"]: clip for clip in clips}
     processor = AutoProcessor.from_pretrained(MODEL, local_files_only=True)
     model = AutoModel.from_pretrained(MODEL, local_files_only=True).eval()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
     lock = Lock()
+
+    def encode(texts):
+        with lock, torch.inference_mode():
+            batch = processor(text=[f"A documentary video shot of {text}." for text in texts],
+                              padding="max_length", truncation=True, return_tensors="pt")
+            vec = model.get_text_features(**{k: v.to(device) for k, v in batch.items()}).float()
+            return torch.nn.functional.normalize(vec, dim=-1).cpu().numpy()
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
@@ -123,39 +177,37 @@ def main():
             self.wfile.write(body)
 
         def do_POST(self):
-            if self.path != "/search":
+            if self.path not in ("/search", "/verify"):
                 self.send_error(404)
                 return
             try:
                 size = int(self.headers.get("Content-Length", "0"))
-                if not 0 < size <= 65536:
+                if not 0 < size <= 262144:
                     raise ValueError("Invalid request size")
                 request = json.loads(self.rfile.read(size))
-                queries = request["queries"]
-                if not isinstance(queries, list) or not 0 < len(queries) <= 60:
-                    raise ValueError("Expected 1–60 queries")
-                if any(not isinstance(q.get("text"), str) or not 0 < len(q["text"]) <= 500 for q in queries):
+                key = "queries" if self.path == "/search" else "shots"
+                items = request[key]
+                if not isinstance(items, list) or not 0 < len(items) <= 60:
+                    raise ValueError(f"Expected 1–60 {key}")
+                if any(not isinstance(q.get("text"), str) or not 0 < len(q["text"]) <= 500 for q in items):
                     raise ValueError("Invalid query text")
                 top_k = max(1, min(8, int(request.get("top_k", 5))))
-                with lock, torch.inference_mode():
-                    batch = processor(text=[f"A documentary video shot of {q['text']}." for q in queries],
-                                      padding="max_length", truncation=True, return_tensors="pt")
-                    vec = model.get_text_features(**{k: v.to(device) for k, v in batch.items()}).float()
-                    vec = torch.nn.functional.normalize(vec, dim=-1).cpu().numpy()
-                results = []
-                for query, qvec in zip(queries, vec):
-                    qtokens = tokens(query["text"])
-                    ranks = []
-                    for clip in clips:
-                        frame_scores = clip["frames"] @ qvec
-                        frame_index, visual = best_window(frame_scores, clip["frame_times"])
-                        title = float(clip["title_vec"] @ qvec)
-                        lexical = len(qtokens & tokens(clip["title"] + " " + clip["description"])) / max(1, len(qtokens))
-                        ranks.append((0.7 * visual + 0.1 * title + 0.2 * lexical, clip, frame_index))
-                    ranks.sort(key=lambda x: x[0], reverse=True)
-                    results.append({"at": query.get("at"), "candidates": [
-                        {"id": c["id"], "title": c["title"], "rank_score": round(s, 4),
-                         "in_point_seconds": in_point(c["frame_times"], i)} for s, c, i in ranks[:top_k]]})
+                vec = encode([item["text"] for item in items])
+                if self.path == "/verify":
+                    exclude = set(request.get("exclude_ids") or [])
+                    results = [verify_shot(shot, qvec, clips_by_id, exclude, top_k) for shot, qvec in zip(items, vec)]
+                else:
+                    results = []
+                    for query, qvec in zip(items, vec):
+                        qtokens = tokens(query["text"])
+                        ranks = []
+                        for clip in clips:
+                            frame_index, visual = best_window(clip["frames"] @ qvec, clip["frame_times"])
+                            ranks.append((blended(visual, clip, qvec, qtokens), clip, frame_index))
+                        ranks.sort(key=lambda x: x[0], reverse=True)
+                        results.append({"at": query.get("at"), "candidates": [
+                            {"id": c["id"], "title": c["title"], "rank_score": round(s, 4),
+                             "in_point_seconds": in_point(c["frame_times"], i)} for s, c, i in ranks[:top_k]]})
                 body = json.dumps({"indexed_approved_clips": len(clips), "results": results}).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -167,7 +219,7 @@ def main():
 
     host = os.environ.get("BROLL_VECTOR_BIND", "127.0.0.1")
     port = int(os.environ.get("BROLL_VECTOR_PORT", "8766"))
-    print(f"Ready: {len(clips)} approved indexed clips on {device}; http://{host}:{port}/search", flush=True)
+    print(f"Ready: {len(clips)} approved indexed clips on {device}; http://{host}:{port}/search and /verify", flush=True)
     ThreadingHTTPServer((host, port), Handler).serve_forever()
 
 
