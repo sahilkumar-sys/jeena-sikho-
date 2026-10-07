@@ -17,7 +17,7 @@ User goal: all-video B-roll, generated/generic stills only in dire cases (max 2 
 ## Verified
 - Calibration on the new project index (28 hand-written English queries): 17 expected matches scored 0.217–0.412 and ranked first every time; 11 no-match queries topped out at 0.163. Floor set to 0.18. Small sample; revisit as the library grows.
 - Project gallery re-index: 56/56 clips, 0 errors, ~2 s/clip on the RTX 4060.
-- E: `Envato Stocks`: see result below.
+- E: `Envato Stocks` (Panchakarma excluded): 246/247 indexed at 1 fps in one verified 20 GiB staging chunk (~12 min); failure is the known broken `Heart/0_Heart_Health_1280x720.mp4` (moov atom missing). Staging folder cleaned; E: only read; still Full Repair Needed.
 - `node --test --test-isolation=none caption-grammar.test.js local-media-catalog.test.js broll-retrieval.test.js`: 20/20 pass (includes a real ffmpeg contact-sheet test). Node and Python syntax checks pass.
 
 ## Not verified / limits
