@@ -11,6 +11,7 @@ Start Phase 2: before rendering, check that the exact seconds of each chosen vid
 - `broll-fit-check.js`: per video shot — keep (≥ 0.18, no clearly better part), move in-point (best part ≥ 0.03 better, or the only part above 0.18), swap to the best unused approved clip ≥ 0.18, drop when everything is below 0.14 (`BROLL_DROP_BELOW_SCORE`) so the presenter stays on screen, otherwise keep the best part flagged `weak`. Never drops the last shot. Real photos and generated stills are not touched.
 - `video-broll-factory.js`: `applyFitCheck` runs after a valid plan, re-validates, records `plan.fit_check` (counts + per-shot details); on any error or when the vector service is down it keeps the unchecked plan and logs `BROLL_FIT_CHECK_WARNING`. Placements carry `fit`; plan cache version 10.
 - `broll-review.md` gains a Fit column and a fit summary line.
+- `vector-index/index_clips.py`: `check_video_header` rejects damaged/incomplete sources (no MP4/MKV/AVI header, e.g. zero-filled files on the dirty E: volume) before copying or decoding; they are recorded as errors and skipped. Panchakarma run restarted with it (153/1305 already indexed were kept).
 
 ## Verified
 - 25/25 Node tests (`broll-fit-check.test.js` covers keep/move/swap/drop/weak/not-indexed/no-video).

@@ -434,6 +434,31 @@ def make_batch_dir(stage_root: Path) -> Path:
     return batch_dir
 
 
+MP4_BOXES = {b"ftyp", b"moov", b"mdat", b"free", b"wide", b"skip", b"pnot", b"uuid"}
+
+
+def check_video_header(path: str) -> None:
+    """Reject damaged/incomplete sources before copying or decoding them.
+
+    Damaged files on the dirty E: exFAT volume keep their size but start with
+    zero bytes instead of a container header; copying them wastes time and reads.
+    """
+    with open(path, "rb") as reader:
+        head = reader.read(12)
+    suffix = Path(path).suffix.lower()
+    if suffix in {".mp4", ".mov", ".m4v"}:
+        ok = len(head) >= 8 and head[4:8] in MP4_BOXES
+    elif suffix in {".mkv", ".webm"}:
+        ok = head[:4] == b"\x1a\x45\xdf\xa3"
+    elif suffix == ".avi":
+        ok = head[:4] == b"RIFF" and head[8:12] == b"AVI "
+    else:
+        ok = bool(head)
+    if not ok:
+        raise RuntimeError("damaged or incomplete source: no valid video header (file starts with "
+                           + (head[:8].hex() or "nothing") + "); skipped without copying")
+
+
 def stage_verified(row, batch_dir: Path) -> Path:
     source = Path(row["path"])
     target = batch_dir / (row["id"] + source.suffix.lower())
@@ -542,6 +567,7 @@ def index_pending(db: sqlite3.Connection, ffmpeg: str, ffprobe: str, allow_cpu: 
                     for stage_number, row in enumerate(batch, 1):
                         print(f"  Copy {stage_number}/{len(batch)}: {row['relative_path']}", flush=True)
                         try:
+                            check_video_header(row["path"])
                             staged_paths[row["id"]] = stage_verified(row, batch_dir)
                         except Exception as exc:
                             stage_errors[row["id"]] = str(exc)
@@ -550,7 +576,10 @@ def index_pending(db: sqlite3.Connection, ffmpeg: str, ffprobe: str, allow_cpu: 
                     clip_started = time.monotonic()
                     try:
                         if row["id"] in stage_errors:
-                            raise RuntimeError("source-to-stage copy failed: " + stage_errors[row["id"]])
+                            raise RuntimeError(stage_errors[row["id"]] if stage_errors[row["id"]].startswith("damaged")
+                                               else "source-to-stage copy failed: " + stage_errors[row["id"]])
+                        if stage_root is None:
+                            check_video_header(row["path"])
                         read_path = str(staged_paths[row["id"]]) if stage_root is not None else row["path"]
                         duration, width, height = probe_video(ffprobe, read_path)
                         vectors = embed_clip(read_path, row["description"], duration, ffmpeg,
