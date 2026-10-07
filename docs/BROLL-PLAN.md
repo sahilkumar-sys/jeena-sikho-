@@ -27,6 +27,7 @@ Updated: 2026-10-07 (Asia/Kolkata). Owner of Phases 1–5: Claude. Phases 1–2 
 | 3 Quality/Quantity | Done, unmerged (`claude/broll-phase3`) | `broll-mode.js`, `finishJob` in factory, n8n Set node |
 | 4 Inbox import | Done, unmerged (`claude/broll-phase3`) | `broll-inbox-import.js`, service `/refresh`, `importJobInbox` in factory |
 | 5 n8n report | Done, unmerged (`claude/broll-phase3`) | `video-broll-factory-workflow.json`, `n8n-workflow.test.js` |
+| Open finding | needs user decision | non-descriptive clip names (`c4`, Panchakarma `C0166`) lose the keyword/title share of the score and fall below 0.18 even when they fit (`docs/sessions/2026-10-07-claude-broll-e2e-test.md`) |
 | Next | — | merge + restart vector service; one authorized non-Gemini Quality-mode sample; resume Panchakarma after the drive is checked; approve E:/Panchakarma candidates; existing-still search; remove stale provider defaults in `plannerSettings` |
 
 Details: `docs/sessions/2026-10-07-claude-broll-phase1.md`, `...-phase2-fit-check.md`, `...-phase3-5.md`.
