@@ -1,5 +1,7 @@
 # Supplied-video factory
 
+**New GitHub clone:** You can inspect the source and run the Node tests immediately. A clone alone cannot run the video factory. Read [docs/CLONE-SETUP.md](docs/CLONE-SETUP.md) for the exact local assets, private settings, and runtime bundle needed before `Setup-Portable.ps1` can work. The automated provider path still uses Gemini and must not be run under the current no-Gemini instruction.
+
 The agreed code fixes are implemented. Read `FACTORY-FIXES.md` for changes, verification and setup. `FACTORY-REVIEW-AND-SETUP.md` is the historical audit, with original Docker setup instructions.
 
 Import the updated `video-broll-factory-workflow.json` into Docker n8n, supply provider credentials in its environment, and validate one video manually before activating the schedule.

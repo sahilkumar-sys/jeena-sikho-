@@ -8,6 +8,7 @@ Updated: 2026-10-07
 - Added agent branch/worktree rules, short architecture and handoff docs, and PR test automation.
 - Connected `origin` and published `main` plus `codex/multi-agent-setup` after the user granted GitHub write access and authorized a public push.
 - Opened PR [#1](https://github.com/sahilkumar-sys/jeena-sikho-/pull/1) for review; it is unmerged.
+- Documented the exact fresh-clone boundary and required controlled asset copy in `docs/CLONE-SETUP.md`.
 
 ## Next
 
@@ -15,3 +16,4 @@ Updated: 2026-10-07
 - Build and verify an explicitly non-Gemini production provider path before any full automated run. The current live v7.1 runner still has Gemini-configured paths.
 - Implement and validate the full B-roll sourcing order recorded at the top of `PROJECT.md` and `Future Vector Embedding Update.md`. Confirm rights and frame fit before approving new assets.
 - Decide whether a controlled shared media store is needed for collaborators; Git deliberately excludes large licensed/private media and local runtime state.
+- Decide how agents receive the controlled portable asset/runtime bundle; Git deliberately excludes large licensed/private media and local runtime state, so a clone alone cannot reproduce a render.

@@ -1,3 +1,7 @@
+## 7 October 2026: fresh-clone retrieval prerequisite
+
+The GitHub source clone does not include `vector-index/local-clips.sqlite`, the SigLIP2 model, bundled Python, or local video files. `docs/CLONE-SETUP.md` now lists these prerequisites explicitly. Code-only Node tests can run from a clone; vector retrieval and rendering require the separately controlled portable asset/runtime copy. No retrieval code, index, or E: gallery was changed by this documentation clarification.
+
 ## 7 October 2026: review PR status
 
 Multi-agent Git setup is in GitHub PR [#1](https://github.com/sahilkumar-sys/jeena-sikho-/pull/1), open and unmerged. It does not change vector retrieval, E: indexes or media approval. Review CI and the PR before merging.

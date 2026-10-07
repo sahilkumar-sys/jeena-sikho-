@@ -1,3 +1,7 @@
+## 7 October 2026: fresh-clone setup boundary clarified
+
+A fresh GitHub clone is sufficient for code review and Node tests, but cannot run the full factory. `Setup-Portable.ps1` first calls `runtime/Repair-Portable-Python.ps1`, which expects the bundled CPython environment and `uv.exe` ignored by Git. The model/index, local media, live tracker, n8n state and private `.env` are also excluded. The new `docs/CLONE-SETUP.md` gives another agent an exact code-only path and a checklist for obtaining the controlled portable assets before full local setup. The live provider boundary remains: no full Gemini-configured production run. No factory code or runtime state changed in this documentation pass.
+
 ## 7 October 2026: multi-agent setup PR open
 
 PR [#1](https://github.com/sahilkumar-sys/jeena-sikho-/pull/1) is open from `codex/multi-agent-setup` into `main` for review. The source baseline and setup branch are published. No merge has occurred. Local caption tests and JavaScript syntax checks pass; review the PR's GitHub Actions result before merging.

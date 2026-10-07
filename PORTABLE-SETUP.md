@@ -1,5 +1,7 @@
 # Portable Heygen workflow
 
+This guide assumes the **complete controlled portable folder**. A GitHub clone excludes media, the bundled Python/model/index, private settings, and live state. If you started from GitHub, read `docs/CLONE-SETUP.md` first; `Setup-Portable.ps1` cannot recreate those missing files by itself.
+
 This folder contains the production project, approved local media, completed
 outputs, vector model/index, Python runtime, and n8n configuration. It can be
 copied to a different folder, Windows user, or drive without editing paths.
