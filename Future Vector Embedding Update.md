@@ -1,6 +1,6 @@
 ## 7 October 2026: /verify fit check and Panchakarma index
 
-`vector-retrieval-service.py` gained `POST /verify` (score the exact planned window, the best window in the same clip, and the best unused approved alternatives from stored 1 fps vectors; no decoding). At user request `E:Envato StocksAll panchkarma therepy` (1,305 videos, ~210 GB) is being indexed on its own into `runtime/vector-cache/index/panchkarma-1fps.sqlite` in 20 GiB staged chunks; ordinary E: runs still exclude it and indexing is not approval. Many of its files on E: are zero-filled (no `ftyp` header, ~12% of the first chunk); `check_video_header` now skips them before copying. Resume command and status: `docs/BROLL-PLAN.md`.
+`vector-retrieval-service.py` gained `POST /verify` (score the exact planned window, the best window in the same clip, and the best unused approved alternatives from stored 1 fps vectors; no decoding). At user request `E:\Envato Stocks\All panchkarma therepy` (1,305 videos, ~210 GB) is being indexed on its own into `runtime/vector-cache/index/panchkarma-1fps.sqlite` in 20 GiB staged chunks; ordinary E: runs still exclude it and indexing is not approval. Many of its files on E: are zero-filled (no `ftyp` header, ~12% of the first chunk); `check_video_header` now skips them before copying. Resume command and status: `docs/BROLL-PLAN.md`.
 
 ## 7 October 2026: 1 fps re-index and E: Envato Stocks index
 

@@ -4,7 +4,7 @@ Updated: 2026-10-07 (Asia/Kolkata)
 
 ## Start here for B-roll work
 
-- Read `docs/BROLL-PLAN.md`: user decisions, Phase 1–2 status (done, unmerged), Phase 3–5 specs (next), where the code and runtime are, and how to resume the Panchakarma index. Code is on branch `claude/broll-phase1` in worktree `C:Usersjs19187Desktopheygen-claude-broll`; the live folder does not contain it yet.
+- Read `docs/BROLL-PLAN.md`: user decisions, Phase 1–2 status (done, unmerged), Phase 3–5 specs (next), where the code and runtime are, and how to resume the Panchakarma index. Code is on branch `claude/broll-phase1` in worktree `C:\Users\js19187\Desktop\heygen-claude-broll`; the live folder does not contain it yet.
 
 ## Agent context rule
 
