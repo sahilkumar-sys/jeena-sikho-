@@ -1,3 +1,7 @@
+## 7 October 2026: review PR status
+
+Multi-agent Git setup is in GitHub PR [#1](https://github.com/sahilkumar-sys/jeena-sikho-/pull/1), open and unmerged. It does not change vector retrieval, E: indexes or media approval. Review CI and the PR before merging.
+
 ## 7 October 2026: GitHub publication update
 
 The user granted GitHub write access and both `main` and `codex/multi-agent-setup` were published to the authorized public repository on 7 October. The setup branch awaits PR review. This changed no retrieval code, local indexes, E: approvals, or video output.

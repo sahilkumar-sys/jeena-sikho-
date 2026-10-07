@@ -1,3 +1,7 @@
+## 7 October 2026: multi-agent setup PR open
+
+PR [#1](https://github.com/sahilkumar-sys/jeena-sikho-/pull/1) is open from `codex/multi-agent-setup` into `main` for review. The source baseline and setup branch are published. No merge has occurred. Local caption tests and JavaScript syntax checks pass; review the PR's GitHub Actions result before merging.
+
 ## 7 October 2026: GitHub branches published
 
 After the user granted write access and authorized a public push, local `main` and `codex/multi-agent-setup` were pushed successfully to `https://github.com/sahilkumar-sys/jeena-sikho-` on 7 October. Both track `origin`. The setup branch awaits PR review and has not been merged. No video/render, provider, live tracker, n8n schedule, or publisher operation was performed during the GitHub setup.
