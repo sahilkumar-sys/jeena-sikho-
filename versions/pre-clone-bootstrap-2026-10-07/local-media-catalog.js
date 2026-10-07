@@ -12,19 +12,13 @@ const special = {
 };
 // These local clips show no identifiable foreign people. Expand this list only
 // after visually checking a clip for both its content and cultural fit.
-const approvedStockIds = new Set([
-  ...require('./approved-stock-ids.json'),
-  ...safeJson(path.join(root, 'local-approved-stock-ids.json'), []),
-]);
+const approvedStockIds = new Set(require('./approved-stock-ids.json'));
 
 function safeJson(file, fallback) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
   catch { return fallback; }
 }
-const stocks = {
-  ...(safeJson(path.join(stockDir, 'asset-map.json'), { assets: {} }).assets || {}),
-  ...(safeJson(path.join(stockDir, 'local-asset-map.json'), { assets: {} }).assets || {}),
-};
+const stocks = safeJson(path.join(stockDir, 'asset-map.json'), { assets: {} }).assets || {};
 const products = safeJson(path.join(productDir, 'catalog.json'), []);
 
 function normalize(value) {

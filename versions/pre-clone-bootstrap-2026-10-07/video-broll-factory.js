@@ -968,9 +968,7 @@ async function processVideo(videoPath, outputRoot, controlRow, onStage = () => {
   const planPath = path.join(workDir, 'broll-plan.json');
   const vectorIndex = path.join(__dirname, 'vector-index', 'local-clips.sqlite');
   const vectorStat = fs.existsSync(vectorIndex) ? fs.statSync(vectorIndex) : null;
-  const localApprovals = path.join(__dirname, 'local-approved-stock-ids.json');
-  const localAssetMap = path.join(__dirname, 'broll-assets', 'local-asset-map.json');
-  const planKey = fingerprint({version: 8, visual_policy: 'video-first-unique-speech-led', source: sourceHash, transcript: cache.transcript.sha256, duration: info.duration, provider: process.env.LLM_PROVIDER || 'openai', url: process.env.LLM_API_URL || '', model: process.env.LLM_MODEL || '', approval_ids: hash(fs.readFileSync(path.join(__dirname, 'approved-stock-ids.json'))), local_approval_ids: fs.existsSync(localApprovals) ? hash(fs.readFileSync(localApprovals)) : null, local_asset_map: fs.existsSync(localAssetMap) ? hash(fs.readFileSync(localAssetMap)) : null, vector_index: vectorStat ? [vectorStat.size, vectorStat.mtimeMs] : null, transition: process.env.IMAGE_TRANSITION_SECONDS || '0.35'});
+  const planKey = fingerprint({version: 8, visual_policy: 'video-first-unique-speech-led', source: sourceHash, transcript: cache.transcript.sha256, duration: info.duration, provider: process.env.LLM_PROVIDER || 'openai', url: process.env.LLM_API_URL || '', model: process.env.LLM_MODEL || '', approval_ids: hash(fs.readFileSync(path.join(__dirname, 'approved-stock-ids.json'))), vector_index: vectorStat ? [vectorStat.size, vectorStat.mtimeMs] : null, transition: process.env.IMAGE_TRANSITION_SECONDS || '0.35'});
   let plan;
   if (process.env.REUSE_EXISTING_PLAN !== 'false' && await cachedFile(planPath, cache.plan, planKey)) {
     onStage('plan_reused');

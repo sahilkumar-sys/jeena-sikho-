@@ -31,13 +31,7 @@ def tokens(value):
 
 def load_clips():
     approved = set(json.loads((ROOT / "approved-stock-ids.json").read_text(encoding="utf-8")))
-    local_approved = ASSET_ROOT / "local-approved-stock-ids.json"
-    if local_approved.is_file():
-        approved.update(json.loads(local_approved.read_text(encoding="utf-8")))
     asset_map = json.loads((ASSET_ROOT / "broll-assets" / "asset-map.json").read_text(encoding="utf-8"))["assets"]
-    local_map = ASSET_ROOT / "broll-assets" / "local-asset-map.json"
-    if local_map.is_file():
-        asset_map.update(json.loads(local_map.read_text(encoding="utf-8"))["assets"])
     by_name = {name.casefold(): id for id, name in asset_map.items() if id in approved}
     # The service loads a point-in-time snapshot; refreshes require restart.
     # immutable avoids SQLite creating WAL/SHM sidecars beside the mounted DB.

@@ -13,6 +13,8 @@ incoming/
 processed/
 video-control.csv
 video-control.csv.lock
+local-approved-stock-ids.json
+broll-assets/local-asset-map.json
 publishing/queue/
 publishing/posting-ledger.csv
 publishing/.publisher.lockdir/
@@ -22,6 +24,8 @@ runtime/tools/
 runtime/*.log
 runtime/*.out
 runtime/*.err
+logs/
+runtime/clone/.smoke-*/
 *.sqlite*
 *.log
 *.lock

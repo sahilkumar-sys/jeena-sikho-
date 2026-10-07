@@ -20,4 +20,12 @@ jobs:
           node --check video-broll-factory.js
           node --check publishing/meta-publisher.js
       - name: Run focused tests
-        run: node --test --test-isolation=none caption-grammar.test.js
+        run: node --test --test-isolation=none caption-grammar.test.js local-media-catalog.test.js
+
+  windows-bootstrap:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test clone bootstrap without Docker or credentials
+        shell: pwsh
+        run: ./runtime/clone/Test-Bootstrap.ps1
