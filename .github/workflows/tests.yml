@@ -1,0 +1,23 @@
+name: Tests
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  node-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check JavaScript syntax
+        run: |
+          node --check video-broll-factory.js
+          node --check publishing/meta-publisher.js
+      - name: Run focused tests
+        run: node --test --test-isolation=none caption-grammar.test.js
