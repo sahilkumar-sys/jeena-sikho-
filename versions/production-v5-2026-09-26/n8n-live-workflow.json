@@ -1,0 +1,194 @@
+[
+  {
+    "updatedAt": "2026-09-24T06:51:40.751Z",
+    "createdAt": "2026-09-24T06:51:40.751Z",
+    "id": "tKy60MAwIvfrTDzM",
+    "name": "AI Video Factory - Automated Folder Pipeline",
+    "description": null,
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes"
+              }
+            ]
+          }
+        },
+        "id": "bd47c1ea-3933-4a89-8aa1-77af4b348a1f",
+        "name": "Scan folder every 5 minutes",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          432,
+          160
+        ]
+      },
+      {
+        "parameters": {},
+        "id": "57c627bb-aa76-4f6a-b3d8-e4abf0d9ed25",
+        "name": "Run video factory",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          432,
+          352
+        ]
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "video-folder",
+                "name": "video_folder",
+                "type": "string",
+                "value": "/files/heygen-workflow/incoming"
+              },
+              {
+                "id": "control-file",
+                "name": "control_file",
+                "type": "string",
+                "value": "/files/heygen-workflow/video-control.csv"
+              },
+              {
+                "id": "output-root",
+                "name": "output_root",
+                "type": "string",
+                "value": "/files/heygen-workflow/processed"
+              },
+              {
+                "id": "max-videos",
+                "name": "max_videos",
+                "type": "number",
+                "value": 1
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "99b2cb9d-430d-42c6-992f-bc0ecfa7909d",
+        "name": "Set factory inputs",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          672,
+          352
+        ]
+      },
+      {
+        "parameters": {
+          "command": "={{ ['node', '/files/heygen-workflow/video-broll-factory.js', '--folder', $json.video_folder, '--control-file', $json.control_file, '--output-root', $json.output_root, '--max-videos', String(Math.max(1, Math.floor(Number($json.max_videos) || 1))), '--report-json'].map(value => String.fromCharCode(39) + String(value).replace(/'/g, String.fromCharCode(39,92,39,39)) + String.fromCharCode(39)).join(' ') }}"
+        },
+        "id": "15ea653b-43e6-4c35-b9fe-3bbfb5576cc2",
+        "name": "Run ElevenLabs + LLM + image generation + FFmpeg",
+        "type": "n8n-nodes-base.executeCommand",
+        "typeVersion": 1,
+        "position": [
+          960,
+          352
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const stdout = String($json.stdout || '');\nconst match = stdout.match(/^BATCH_RESULT=(.+)$/m);\nif (!match) throw new Error('Factory did not emit a batch report. Check Execute Command output.');\nconst report = JSON.parse(match[1]);\nif (!report.ok && report.status !== 'needs_configuration') { const failures = (report.results || []).filter(row => row.status === 'failed').map(row => row.error); throw new Error(report.error || failures.join('; ') || 'Factory failed; inspect video-control.csv.'); }\nreturn [{ json: report }];"
+        },
+        "id": "536088ec-c4db-46a2-88b5-84642e5d879f",
+        "name": "Report factory result",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1232,
+          352
+        ]
+      }
+    ],
+    "connections": {
+      "Run video factory": {
+        "main": [
+          [
+            {
+              "node": "Set factory inputs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Scan folder every 5 minutes": {
+        "main": [
+          [
+            {
+              "node": "Set factory inputs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set factory inputs": {
+        "main": [
+          [
+            {
+              "node": "Run ElevenLabs + LLM + image generation + FFmpeg",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Run ElevenLabs + LLM + image generation + FFmpeg": {
+        "main": [
+          [
+            {
+              "node": "Report factory result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "binaryMode": "separate"
+    },
+    "staticData": null,
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": {},
+    "versionId": "aa107768-14d2-436f-8a9f-4ec33b5d46ef",
+    "activeVersionId": null,
+    "versionCounter": 1,
+    "triggerCount": 0,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-09-24T06:51:40.755Z",
+        "createdAt": "2026-09-24T06:51:40.755Z",
+        "role": "workflow:owner",
+        "workflowId": "tKy60MAwIvfrTDzM",
+        "projectId": "8Txh6wG2FsZ0KvuA",
+        "project": {
+          "updatedAt": "2026-09-22T10:33:44.517Z",
+          "createdAt": "2026-09-22T10:31:41.368Z",
+          "id": "8Txh6wG2FsZ0KvuA",
+          "name": "Sahil sahilkumar84270@gmail.com <sahilkumar84270@gmail.com>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "9acdb4d7-4aa8-402f-aac6-1d61fa48f80a"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  }
+]

@@ -1,0 +1,1 @@
+video_name,process,status,job_id,input_path,file_size_bytes,duration_seconds,stage,transcript_path,captions_path,broll_plan_path,image_count,output_video_url,elevenlabs_audio_minutes,elevenlabs_cost_usd,elevenlabs_request_id,transcript_reused,llm_model,created_at,updated_at,completed_at,error_message,retry

@@ -1,0 +1,62 @@
+{
+  "id": "923b2a94-4df7-407f-88d8-95b544d1545e",
+  "name": "Meta Publisher - Review Queue (Instagram + Facebook)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "minutes", "minutesInterval": 5 }
+          ]
+        }
+      },
+      "id": "publisher-schedule",
+      "name": "Check approved posts every 5 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-480, -120]
+    },
+    {
+      "parameters": {},
+      "id": "publisher-manual",
+      "name": "Check publishing queue now",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-480, 80]
+    },
+    {
+      "parameters": {
+        "command": "node /files/heygen-workflow/publishing/meta-publisher.js --run --max-new 1 --report-json"
+      },
+      "id": "publisher-runner",
+      "name": "Prepare drafts and publish approved videos",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [-180, -20]
+    },
+    {
+      "parameters": {
+        "jsCode": "const stdout = String($json.stdout || '');\nconst match = stdout.match(/^PUBLISHER_REPORT_JSON=(.+)$/m);\nif (!match) throw new Error('Publisher did not emit a report. Check Execute Command output.');\nconst report = JSON.parse(match[1]);\nif (report.status === 'error') throw new Error(report.error || 'Publisher failed.');\nreturn [{ json: report }];"
+      },
+      "id": "publisher-report",
+      "name": "Report review and posting status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [120, -20]
+    }
+  ],
+  "connections": {
+    "Check approved posts every 5 minutes": {
+      "main": [[{ "node": "Prepare drafts and publish approved videos", "type": "main", "index": 0 }]]
+    },
+    "Check publishing queue now": {
+      "main": [[{ "node": "Prepare drafts and publish approved videos", "type": "main", "index": 0 }]]
+    },
+    "Prepare drafts and publish approved videos": {
+      "main": [[{ "node": "Report review and posting status", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": []
+}

@@ -1,0 +1,98 @@
+[Script Info]
+Title: Ayurveda Khand Bold amber subtitles
+ScriptType: v4.00+
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: KhandAmber,Khand,126,&H004AC1FF,&H0000FFFF,&H00101520,&H80080D14,-1,0,1,2.5,0,2,88,88,315,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.16,0:00:00.84,KhandAmber,,0,0,0,,{\fad(60,40)}साफ बात है
+Dialogue: 0,0:00:01.34,0:00:02.84,KhandAmber,,0,0,0,,{\fad(40,40)}अगर healthcare सिर्फ
+Dialogue: 0,0:00:03.08,0:00:03.72,KhandAmber,,0,0,0,,{\fad(40,40)}बीमारी होने के
+Dialogue: 0,0:00:03.74,0:00:04.46,KhandAmber,,0,0,0,,{\fad(40,40)}बाद शुरू होगा
+Dialogue: 0,0:00:04.94,0:00:05.64,KhandAmber,,0,0,0,,{\fad(40,40)}तो हम हमेशा
+Dialogue: 0,0:00:06.20,0:00:06.66,KhandAmber,,0,0,0,,{\fad(40,40)}देर से ही
+Dialogue: 0,0:00:06.70,0:00:08.32,KhandAmber,,0,0,0,,{\fad(40,40)}पहुंचेंगे। सही healthcare
+Dialogue: 0,0:00:08.38,0:00:09.20,KhandAmber,,0,0,0,,{\fad(40,40)}वह है जो
+Dialogue: 0,0:00:09.24,0:00:09.94,KhandAmber,,0,0,0,,{\fad(40,40)}बीमारी आने से
+Dialogue: 0,0:00:09.98,0:00:11.12,KhandAmber,,0,0,0,,{\fad(40,40)}पहले शरीर को
+Dialogue: 0,0:00:11.16,0:00:12.82,KhandAmber,,0,0,0,,{\fad(40,40)}संभाले। यही आयुर्वेद
+Dialogue: 0,0:00:12.94,0:00:13.84,KhandAmber,,0,0,0,,{\fad(40,40)}की असली ताकत
+Dialogue: 0,0:00:13.90,0:00:14.82,KhandAmber,,0,0,0,,{\fad(40,40)}है। आप क्या
+Dialogue: 0,0:00:14.92,0:00:15.64,KhandAmber,,0,0,0,,{\fad(40,40)}खाते हैं, कब
+Dialogue: 0,0:00:15.70,0:00:16.56,KhandAmber,,0,0,0,,{\fad(40,40)}सोते हैं, कैसे
+Dialogue: 0,0:00:16.62,0:00:17.74,KhandAmber,,0,0,0,,{\fad(40,40)}जीते हैं, आपका
+Dialogue: 0,0:00:17.78,0:00:18.78,KhandAmber,,0,0,0,,{\fad(40,40)}digestion कैसा है,
+Dialogue: 0,0:00:18.86,0:00:19.66,KhandAmber,,0,0,0,,{\fad(40,40)}stress कितना है,
+Dialogue: 0,0:00:20.18,0:00:20.82,KhandAmber,,0,0,0,,{\fad(40,40)}यह सब health
+Dialogue: 0,0:00:20.86,0:00:21.94,KhandAmber,,0,0,0,,{\fad(40,40)}का हिस्सा है।
+Dialogue: 0,0:00:22.02,0:00:23.10,KhandAmber,,0,0,0,,{\fad(40,40)}सिर्फ report normal
+Dialogue: 0,0:00:23.14,0:00:24.22,KhandAmber,,0,0,0,,{\fad(40,40)}आ जाना health
+Dialogue: 0,0:00:24.28,0:00:25.22,KhandAmber,,0,0,0,,{\fad(40,40)}नहीं है और
+Dialogue: 0,0:00:25.28,0:00:25.86,KhandAmber,,0,0,0,,{\fad(40,40)}आज दुनिया भी
+Dialogue: 0,0:00:25.92,0:00:26.42,KhandAmber,,0,0,0,,{\fad(40,40)}इसी दिशा में
+Dialogue: 0,0:00:26.46,0:00:26.90,KhandAmber,,0,0,0,,{\fad(40,40)}जा रही है।
+Dialogue: 0,0:00:26.92,0:00:28.94,KhandAmber,,0,0,0,,{\an5\pos(540,1450)\fs126\bord2.5\fad(40,40)}Prevention,
+Dialogue: 0,0:00:26.92,0:00:28.94,KhandAmber,,0,0,0,,{\an5\pos(540,1555)\fs126\bord2.5\fad(40,40)}personalized care,
+Dialogue: 0,0:00:29.12,0:00:30.16,KhandAmber,,0,0,0,,{\fad(40,40)}gut health, sleep,
+Dialogue: 0,0:00:30.26,0:00:31.68,KhandAmber,,0,0,0,,{\fad(40,40)}mental well-being और
+Dialogue: 0,0:00:31.74,0:00:33.04,KhandAmber,,0,0,0,,{\fad(40,40)}lifestyle। अब आयुर्वेद
+Dialogue: 0,0:00:33.08,0:00:33.88,KhandAmber,,0,0,0,,{\fad(40,40)}को सिर्फ मानने
+Dialogue: 0,0:00:33.92,0:00:35.12,KhandAmber,,0,0,0,,{\fad(40,40)}की नहीं, research
+Dialogue: 0,0:00:35.16,0:00:35.86,KhandAmber,,0,0,0,,{\fad(40,40)}से साबित करने
+Dialogue: 0,0:00:35.92,0:00:37.12,KhandAmber,,0,0,0,,{\fad(40,40)}की, evidence से
+Dialogue: 0,0:00:37.16,0:00:38.42,KhandAmber,,0,0,0,,{\fad(40,40)}मजबूत करने की
+Dialogue: 0,0:00:38.52,0:00:39.30,KhandAmber,,0,0,0,,{\fad(40,40)}और innovation के
+Dialogue: 0,0:00:39.36,0:00:40.28,KhandAmber,,0,0,0,,{\fad(40,40)}साथ आगे बढ़ाने
+Dialogue: 0,0:00:40.32,0:00:41.32,KhandAmber,,0,0,0,,{\fad(40,40)}की जरूरत है।
+Dialogue: 0,0:00:41.34,0:00:42.10,KhandAmber,,0,0,0,,{\fad(40,40)}क्योंकि बात बहुत
+Dialogue: 0,0:00:42.16,0:00:43.08,KhandAmber,,0,0,0,,{\fad(40,40)}सीधी है। जो
+Dialogue: 0,0:00:43.16,0:00:44.00,KhandAmber,,0,0,0,,{\fad(40,40)}चीज काम करती
+Dialogue: 0,0:00:44.08,0:00:44.98,KhandAmber,,0,0,0,,{\fad(40,40)}है, उसे evidence
+Dialogue: 0,0:00:45.02,0:00:45.62,KhandAmber,,0,0,0,,{\fad(40,40)}के साथ दुनिया
+Dialogue: 0,0:00:45.66,0:00:46.22,KhandAmber,,0,0,0,,{\fad(40,40)}के सामने आना
+Dialogue: 0,0:00:46.28,0:00:48.42,KhandAmber,,0,0,0,,{\fad(40,40)}चाहिए। आयुर्वेद और
+Dialogue: 0,0:00:48.48,0:00:49.18,KhandAmber,,0,0,0,,{\fad(40,40)}modern science को
+Dialogue: 0,0:00:49.22,0:00:49.94,KhandAmber,,0,0,0,,{\fad(40,40)}लड़ाने की जरूरत
+Dialogue: 0,0:00:49.98,0:00:51.08,KhandAmber,,0,0,0,,{\fad(40,40)}नहीं है। जरूरत
+Dialogue: 0,0:00:51.10,0:00:51.76,KhandAmber,,0,0,0,,{\fad(40,40)}है यह समझने
+Dialogue: 0,0:00:51.82,0:00:52.84,KhandAmber,,0,0,0,,{\fad(40,40)}की कि दोनों
+Dialogue: 0,0:00:52.88,0:00:53.72,KhandAmber,,0,0,0,,{\fad(40,40)}मिलकर इंसान के
+Dialogue: 0,0:00:53.76,0:00:54.94,KhandAmber,,0,0,0,,{\fad(40,40)}स्वास्थ्य को और
+Dialogue: 0,0:00:54.98,0:00:55.64,KhandAmber,,0,0,0,,{\fad(40,40)}बेहतर कैसे कर
+Dialogue: 0,0:00:55.66,0:00:56.70,KhandAmber,,0,0,0,,{\fad(40,40)}सकते हैं। मैं
+Dialogue: 0,0:00:56.74,0:00:57.42,KhandAmber,,0,0,0,,{\fad(40,40)}हमेशा कहता हूँ,
+Dialogue: 0,0:00:57.86,0:00:58.98,KhandAmber,,0,0,0,,{\fad(40,40)}"Prevention is the
+Dialogue: 0,0:00:59.06,0:01:00.34,KhandAmber,,0,0,0,,{\fad(40,40)}only cure" और
+Dialogue: 0,0:01:00.44,0:01:01.22,KhandAmber,,0,0,0,,{\fad(40,40)}आयुर्वेद भी यही
+Dialogue: 0,0:01:01.28,0:01:02.74,KhandAmber,,0,0,0,,{\fad(40,40)}कहता है। "स्वस्थस्य
+Dialogue: 0,0:01:02.80,0:01:04.34,KhandAmber,,0,0,0,,{\fad(40,40)}स्वास्थ्य रक्षणम्" यानी
+Dialogue: 0,0:01:04.38,0:01:04.98,KhandAmber,,0,0,0,,{\fad(40,40)}जो स्वस्थ है,
+Dialogue: 0,0:01:05.62,0:01:06.80,KhandAmber,,0,0,0,,{\fad(40,40)}पहले उसके स्वास्थ्य
+Dialogue: 0,0:01:06.84,0:01:07.94,KhandAmber,,0,0,0,,{\fad(40,40)}की रक्षा करो।
+Dialogue: 0,0:01:07.98,0:01:08.80,KhandAmber,,0,0,0,,{\fad(40,40)}क्योंकि अगर व्यक्ति
+Dialogue: 0,0:01:08.86,0:01:09.42,KhandAmber,,0,0,0,,{\fad(40,40)}स्वस्थ होगा तो
+Dialogue: 0,0:01:09.46,0:01:10.78,KhandAmber,,0,0,0,,{\fad(40,40)}परिवार स्वस्थ होगा।
+Dialogue: 0,0:01:10.82,0:01:11.66,KhandAmber,,0,0,0,,{\fad(40,40)}परिवार स्वस्थ होगा
+Dialogue: 0,0:01:11.70,0:01:12.42,KhandAmber,,0,0,0,,{\fad(40,40)}तो समाज स्वस्थ
+Dialogue: 0,0:01:12.44,0:01:13.56,KhandAmber,,0,0,0,,{\fad(40,40)}होगा और स्वस्थ
+Dialogue: 0,0:01:13.62,0:01:14.20,KhandAmber,,0,0,0,,{\fad(40,40)}समाज ही एक
+Dialogue: 0,0:01:14.24,0:01:15.76,KhandAmber,,0,0,0,,{\fad(40,40)}बेहतर भविष्य बनाएगा।
+Dialogue: 0,0:01:15.84,0:01:16.68,KhandAmber,,0,0,0,,{\fad(40,40)}यही one health,
+Dialogue: 0,0:01:16.80,0:01:18.04,KhandAmber,,0,0,0,,{\fad(40,40)}one future है।
+Dialogue: 0,0:01:18.12,0:01:19.02,KhandAmber,,0,0,0,,{\fad(40,40)}इस आयुर्वेद day
+Dialogue: 0,0:01:19.06,0:01:19.98,KhandAmber,,0,0,0,,{\fad(40,40)}पर सिर्फ आयुर्वेद
+Dialogue: 0,0:01:20.02,0:01:20.40,KhandAmber,,0,0,0,,{\fad(40,40)}की बात मत
+Dialogue: 0,0:01:20.44,0:01:21.32,KhandAmber,,0,0,0,,{\fad(40,40)}कीजिए। आयुर्वेद को
+Dialogue: 0,0:01:21.36,0:01:23.76,KhandAmber,,0,0,0,,{\fad(40,40)}अपनाइए, समझिए, research
+Dialogue: 0,0:01:23.80,0:01:24.94,KhandAmber,,0,0,0,,{\fad(40,40)}से जोड़िए और
+Dialogue: 0,0:01:25.02,0:01:25.82,KhandAmber,,0,0,0,,{\fad(40,40)}आने वाली पीढ़ियों
+Dialogue: 0,0:01:25.86,0:01:26.56,KhandAmber,,0,0,0,,{\fad(40,40)}के लिए मजबूत
+Dialogue: 0,0:01:26.58,0:01:28.98,KhandAmber,,0,0,0,,{\fad(40,40)}बनाइए। "Ayurveda for
+Dialogue: 0,0:01:29.06,0:01:30.22,KhandAmber,,0,0,0,,{\fad(40,40)}a healthier tomorrow"

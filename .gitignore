@@ -1,0 +1,72 @@
+# Local credentials and machine-specific configuration
+.env
+.env.*
+!.env.example
+!*.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Runtime state, queues, and generated output
+incoming/
+processed/
+video-control.csv
+video-control.csv.lock
+publishing/queue/
+publishing/posting-ledger.csv
+publishing/.publisher.lockdir/
+runtime/n8n/data/
+runtime/vector-cache/
+runtime/tools/
+runtime/*.log
+runtime/*.out
+runtime/*.err
+*.sqlite*
+*.log
+*.lock
+*.lockdir/
+
+# Licensed or private media; keep catalogs and source code in Git
+*.mp4
+*.mov
+*.mkv
+*.webm
+*.avi
+*.m4v
+*.mp3
+*.wav
+*.m4a
+*.flac
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.xlsx
+*.zip
+*.7z
+*.tar
+*.gz
+
+# Local tools, dependencies, caches, and editor state
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+dist/
+build/
+coverage/
+.cache/
+.obsidian/
+*.exe
+*.dll
+*.tmp
+*.bak
+*~
+
+# Historical media packages and local previews
+portable-reference/
+Non-Essential Testing Items/

@@ -1,0 +1,42 @@
+services:
+  n8n:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: n8n-with-ffmpeg:2.40.5
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
+      - TZ=${TZ}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - 'NODES_EXCLUDE=["n8n-nodes-base.readWriteFile","n8n-nodes-base.localFileTrigger"]'
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - ELEVENLABS_LANGUAGE_CODE=${ELEVENLABS_LANGUAGE_CODE}
+      - ELEVENLABS_STT_MODEL=${ELEVENLABS_STT_MODEL}
+      - LLM_PROVIDER=${LLM_PROVIDER}
+      - LLM_API_URL=${LLM_API_URL}
+      - LLM_MODEL=${LLM_MODEL}
+      - IMAGES_PER_MINUTE=${IMAGES_PER_MINUTE}
+      - IMAGE_PROVIDER=${IMAGE_PROVIDER}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - IMAGE_API_URL=${IMAGE_API_URL}
+      - IMAGE_MODEL=${IMAGE_MODEL}
+      - IMAGE_SIZE=${IMAGE_SIZE}
+      - IMAGE_TRANSITION_SECONDS=${IMAGE_TRANSITION_SECONDS}
+      - MAX_VIDEOS_PER_RUN=${MAX_VIDEOS_PER_RUN}
+      - REUSE_EXISTING_TRANSCRIPT=${REUSE_EXISTING_TRANSCRIPT}
+      - META_GRAPH_VERSION=${META_GRAPH_VERSION}
+      - META_PAGE_ID=${META_PAGE_ID}
+      - META_IG_USER_ID=${META_IG_USER_ID}
+      - META_PAGE_ACCESS_TOKEN=${META_PAGE_ACCESS_TOKEN}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - "C:/Users/js19187/Desktop/heygen workflow:/files/heygen-workflow"
+
+volumes:
+  n8n_data:

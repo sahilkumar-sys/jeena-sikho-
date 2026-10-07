@@ -1,0 +1,158 @@
+{
+  "name": "AI Video Factory - Automated Folder Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "factory-schedule",
+      "name": "Scan folder every 5 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -520,
+        -180
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "factory-trigger",
+      "name": "Run video factory",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "video-folder",
+              "name": "video_folder",
+              "type": "string",
+              "value": "/files/heygen-workflow/incoming"
+            },
+            {
+              "id": "control-file",
+              "name": "control_file",
+              "type": "string",
+              "value": "/files/heygen-workflow/video-control.csv"
+            },
+            {
+              "id": "output-root",
+              "name": "output_root",
+              "type": "string",
+              "value": "/files/heygen-workflow/processed"
+            },
+            {
+              "id": "max-videos",
+              "name": "max_videos",
+              "type": "number",
+              "value": 1
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "factory-config",
+      "name": "Set factory inputs",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -280,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "command": "={{ ['node', '/files/heygen-workflow/video-broll-factory.js', '--folder', $json.video_folder, '--control-file', $json.control_file, '--output-root', $json.output_root, '--max-videos', String(Math.max(1, Math.floor(Number($json.max_videos) || 1))), '--report-json'].map(value => String.fromCharCode(39) + String(value).replace(/'/g, String.fromCharCode(39,92,39,39)) + String.fromCharCode(39)).join(' ') }}"
+      },
+      "id": "factory-runner",
+      "name": "Run ElevenLabs + LLM + image generation + FFmpeg",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const stdout = String($json.stdout || '');\nconst match = stdout.match(/^BATCH_RESULT=(.+)$/m);\nif (!match) throw new Error('Factory did not emit a batch report. Check Execute Command output.');\nconst report = JSON.parse(match[1]);\nif (!report.ok && report.status !== 'needs_configuration') { const failures = (report.results || []).filter(row => row.status === 'failed').map(row => row.error); throw new Error(report.error || failures.join('; ') || 'Factory failed; inspect video-control.csv.'); }\nreturn [{ json: report }];"
+      },
+      "id": "factory-report",
+      "name": "Report factory result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Run video factory": {
+      "main": [
+        [
+          {
+            "node": "Set factory inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scan folder every 5 minutes": {
+      "main": [
+        [
+          {
+            "node": "Set factory inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set factory inputs": {
+      "main": [
+        [
+          {
+            "node": "Run ElevenLabs + LLM + image generation + FFmpeg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run ElevenLabs + LLM + image generation + FFmpeg": {
+      "main": [
+        [
+          {
+            "node": "Report factory result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "dbf62e60-d938-4260-ab07-f4ace4ee0ba2",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

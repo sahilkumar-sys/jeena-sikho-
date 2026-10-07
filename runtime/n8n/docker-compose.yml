@@ -1,0 +1,27 @@
+services:
+  n8n:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: heygen-n8n-ffmpeg:2.40.5-portable
+    container_name: heygen-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    env_file:
+      - .env
+    environment:
+      N8N_HOST: localhost
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: http
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "false"
+      NODES_EXCLUDE: '["n8n-nodes-base.readWriteFile","n8n-nodes-base.localFileTrigger"]'
+      BROLL_RETRIEVAL_URL: http://host.docker.internal:8766/search
+    volumes:
+      - type: bind
+        source: ./data
+        target: /home/node/.n8n
+      - type: bind
+        source: ../..
+        target: /files/heygen-workflow
+
