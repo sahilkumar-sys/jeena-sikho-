@@ -1,3 +1,7 @@
+## 7 October 2026: GitHub publication update
+
+The user granted GitHub write access and both `main` and `codex/multi-agent-setup` were published to the authorized public repository on 7 October. The setup branch awaits PR review. This changed no retrieval code, local indexes, E: approvals, or video output.
+
 ## 7 October 2026: GitHub access gate
 
 The user authorized publishing this project to the public `sahilkumar-sys/jeena-sikho-` GitHub repository, but the first push failed with HTTP 403 because the PC's configured `shaluji1111` account lacks write access. No branch has been published. The Git remote is connected locally; `docs/HANDOFF.md` has the retry steps after access is granted. Retrieval code and indexes were not changed.
