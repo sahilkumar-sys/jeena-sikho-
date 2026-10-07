@@ -54,7 +54,7 @@ if (Test-Path -LiteralPath $incomingSource -PathType Container) {
 
 $brollSource = if ($BrollFolder) { (Resolve-Path -LiteralPath $BrollFolder -ErrorAction Stop).Path } else { Join-Path $mediaRootPath 'broll-assets' }
 $brollDestination = Join-Path $destinationRootPath 'broll-assets'
-Copy-MediaFolder $brollSource $brollDestination $videoExtensions $true
+Copy-MediaFolder $brollSource $brollDestination $videoExtensions $false
 Copy-MediaFolder (Join-Path $mediaRootPath 'product-assets\images') (Join-Path $destinationRootPath 'product-assets\images') $imageExtensions $false
 Copy-MediaFolder (Join-Path $mediaRootPath 'product-assets\hires') (Join-Path $destinationRootPath 'product-assets\hires') $imageExtensions $false
 Copy-MediaFolder (Join-Path $mediaRootPath 'reference-assets') (Join-Path $destinationRootPath 'reference-assets') $imageExtensions $false
@@ -68,7 +68,7 @@ $baseMapPath = Join-Path $brollDestination 'asset-map.json'
 if (-not (Test-Path -LiteralPath $baseMapPath -PathType Leaf)) { throw "Tracked B-roll catalog is missing: $baseMapPath" }
 $baseMap = Get-Content -LiteralPath $baseMapPath -Raw | ConvertFrom-Json
 $knownNames = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
-foreach ($entry in $baseMap.assets.PSObject.Properties) { [void]$knownNames.Add([string]$entry.Value) }
+foreach ($entry in $baseMap.assets.PSObject.Properties) { [void]$knownNames.Add(([string]$entry.Value).Replace('\', '/')) }
 
 $localMapPath = Join-Path $brollDestination 'local-asset-map.json'
 $localAssets = [ordered]@{}
@@ -76,21 +76,22 @@ if (Test-Path -LiteralPath $localMapPath -PathType Leaf) {
     $saved = Get-Content -LiteralPath $localMapPath -Raw | ConvertFrom-Json
     foreach ($entry in $saved.assets.PSObject.Properties) {
         $localAssets[$entry.Name] = [string]$entry.Value
-        [void]$knownNames.Add([string]$entry.Value)
+        [void]$knownNames.Add(([string]$entry.Value).Replace('\', '/'))
     }
 }
 $nextId = 1
 foreach ($id in $localAssets.Keys) {
     if ($id -match '^U(\d+)$') { $nextId = [Math]::Max($nextId, [int]$Matches[1] + 1) }
 }
-Get-ChildItem -LiteralPath $brollDestination -File | Where-Object {
+Get-ChildItem -LiteralPath $brollDestination -File -Recurse | Where-Object {
     $videoExtensions -contains $_.Extension.ToLowerInvariant()
-} | Sort-Object Name | ForEach-Object {
-    if (-not $knownNames.Contains($_.Name)) {
+} | Sort-Object FullName | ForEach-Object {
+    $relative = $_.FullName.Substring($brollDestination.Length).TrimStart('\', '/').Replace('\', '/')
+    if (-not $knownNames.Contains($relative)) {
         $id = 'U{0:D4}' -f $nextId
         $nextId += 1
-        $localAssets[$id] = $_.Name
-        [void]$knownNames.Add($_.Name)
+        $localAssets[$id] = $relative
+        [void]$knownNames.Add($relative)
     }
 }
 $utf8 = New-Object System.Text.UTF8Encoding($false)

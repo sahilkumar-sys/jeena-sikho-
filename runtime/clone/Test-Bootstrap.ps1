@@ -15,20 +15,24 @@ $scratch = Join-Path $PSScriptRoot ('.smoke-' + [guid]::NewGuid().ToString('N'))
 $media = Join-Path $scratch 'media'
 $clone = Join-Path $scratch 'clone'
 try {
-    foreach ($directory in @('incoming', 'broll-assets', 'product-assets\images')) {
+    foreach ($directory in @('incoming', 'broll-assets', 'broll-assets\herbs', 'product-assets\images')) {
         New-Item -ItemType Directory -Path (Join-Path $media $directory) -Force | Out-Null
     }
     New-Item -ItemType Directory -Path (Join-Path $clone 'broll-assets') -Force | Out-Null
     [IO.File]::WriteAllText((Join-Path $clone 'broll-assets\asset-map.json'), '{"assets":{}}')
     [IO.File]::WriteAllText((Join-Path $media 'incoming\presenter.mp4'), 'presenter fixture')
     [IO.File]::WriteAllText((Join-Path $media 'broll-assets\owned-herbs.mp4'), 'broll fixture')
+    [IO.File]::WriteAllText((Join-Path $media 'broll-assets\herbs\owned-herbs.mp4'), 'nested broll fixture')
     [IO.File]::WriteAllText((Join-Path $media 'product-assets\images\product-001.png'), 'image fixture')
 
     & $importer -MediaRoot $media -DestinationRoot $clone -ApproveSuppliedBroll
     & $importer -MediaRoot $media -DestinationRoot $clone -ApproveSuppliedBroll
     $map = Get-Content -LiteralPath (Join-Path $clone 'broll-assets\local-asset-map.json') -Raw | ConvertFrom-Json
     $approved = @(Get-Content -LiteralPath (Join-Path $clone 'local-approved-stock-ids.json') -Raw | ConvertFrom-Json)
-    if ($map.assets.U0001 -ne 'owned-herbs.mp4' -or $approved.Count -ne 1 -or $approved[0] -ne 'U0001') { throw 'Local media approval/catalog failed.' }
+    $mapped = @($map.assets.PSObject.Properties | ForEach-Object { $_.Value })
+    if ($mapped.Count -ne 2 -or $mapped -notcontains 'owned-herbs.mp4' -or
+        $mapped -notcontains 'herbs/owned-herbs.mp4' -or $approved.Count -ne 2 -or
+        $approved -notcontains 'U0001' -or $approved -notcontains 'U0002') { throw 'Local media approval/catalog failed.' }
     if (-not (Test-Path -LiteralPath (Join-Path $clone 'incoming\presenter.mp4')) -or
         -not (Test-Path -LiteralPath (Join-Path $clone 'product-assets\images\product-001.png'))) { throw 'Media copy failed.' }
 

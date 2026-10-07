@@ -9,7 +9,7 @@ Updated: 2026-10-07
 - Connected `origin` and published `main` plus `codex/multi-agent-setup` after the user granted GitHub write access and authorized a public push.
 - Opened PR [#1](https://github.com/sahilkumar-sys/jeena-sikho-/pull/1) for review; it is unmerged.
 - Documented the exact fresh-clone boundary and required controlled asset copy in `docs/CLONE-SETUP.md`.
-- Added a Windows fresh-clone bootstrap that imports supplied media, creates private non-Gemini settings after explicit image-provider authorization, and prepares Docker-based n8n and optional CPU vector retrieval. Added local approved-media overlays and offline PR tests.
+- Added a Windows fresh-clone bootstrap that imports supplied media, preserves nested B-roll folders, creates private non-Gemini settings after explicit image-provider authorization, and prepares Docker-based n8n and optional CPU vector retrieval. Added local approved-media overlays and offline PR tests.
 
 ## Next
 

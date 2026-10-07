@@ -38,14 +38,14 @@ def load_clips():
     local_map = ASSET_ROOT / "broll-assets" / "local-asset-map.json"
     if local_map.is_file():
         asset_map.update(json.loads(local_map.read_text(encoding="utf-8"))["assets"])
-    by_name = {name.casefold(): id for id, name in asset_map.items() if id in approved}
+    by_relative_path = {name.replace('\\', '/').casefold(): id for id, name in asset_map.items() if id in approved}
     # The service loads a point-in-time snapshot; refreshes require restart.
     # immutable avoids SQLite creating WAL/SHM sidecars beside the mounted DB.
     db = sqlite3.connect(DB.resolve().as_uri() + "?mode=ro&immutable=1", uri=True)
     db.row_factory = sqlite3.Row
     clips = []
-    for row in db.execute("SELECT id,path,title,description FROM clips WHERE present=1 AND status='complete'"):
-        asset_id = by_name.get(Path(row["path"]).name.casefold())
+    for row in db.execute("SELECT id,path,relative_path,title,description FROM clips WHERE present=1 AND status='complete'"):
+        asset_id = by_relative_path.get(row["relative_path"].replace('\\', '/').casefold())
         if not asset_id or not (ASSET_ROOT / "broll-assets" / asset_map[asset_id]).is_file():
             continue
         vectors = {"frame": [], "title": []}
