@@ -1,6 +1,23 @@
 # Instructions for an LLM working on this project
 
-This is the live, portable Heygen video factory. Resolve the project root from this file's directory; do not assume a fixed Windows user or drive path. The project is bind-mounted into Docker at `/files/heygen-workflow` and is **not a Git repository**. “Main” means the files in this root. Reply to the user in English.
+This is the live, portable Heygen video factory. Resolve the project root from this file's directory; do not assume a fixed Windows user or drive path. The project is bind-mounted into Docker at `/files/heygen-workflow`. Git `main` is the reviewed source baseline; the active code is in this root. Reply to the user in English.
+
+## Shared project workflow
+
+- Before any task, read `AGENTS.md`, `docs/ARCHITECTURE.md`, and `docs/HANDOFF.md`, then the newest dated sections of the two project histories below. If documentation and code disagree, trust the code and fix the documentation.
+- Work on a separate branch named `<agent-name>/<task>`; never implement directly on `main`. Use a separate Git worktree when agents work concurrently. Review a PR before merging to `main`.
+- Keep work scoped. Ask before adding dependencies or touching unrelated modules. Never commit secrets.
+- Before finishing a session, run the relevant tests and update `docs/HANDOFF.md` and `docs/ROADMAP.md` with actual status and next steps.
+- Git is the source of truth for code, catalogs, rules, and handoffs. Large licensed/private media, live tracker state, renders, runtime data, and credentials are local and ignored by Git; preserve and share them through the portable project copy under controlled access.
+
+## Stack, map, and commands
+
+- Node.js 24 (current local version: 24.13.1), built-in `node:test`, no npm package manifest; Python 3.11.16 for SigLIP2 retrieval; n8n 2.40.5 and FFmpeg in Docker. Windows PowerShell scripts manage the portable runtime.
+- Root `*.js` files are the factory, planner, renderer, captions, and local media catalog. `publishing/` is a separate approval-gated publisher. `runtime/n8n/` holds Compose; `vector-index/` holds the Python indexer; `broll-assets/`, `product-assets/`, and `reference-assets/` hold local media and catalogs. `docs/` is the short shared context; `PROJECT.md` and `Future Vector Embedding Update.md` are dated history.
+- Install portable runtime on Windows with Docker Desktop running: `./Setup-Portable.ps1` from PowerShell. For code-only tests, no install is needed beyond Node.js 24.
+- Start services: `./Start-Heygen.ps1`; stop: `./Stop-Heygen.ps1`. This does not authorize a production render; see provider boundary below.
+- Test: `node --test --test-isolation=none caption-grammar.test.js`. Syntax check: `node --check video-broll-factory.js` and `node --check publishing/meta-publisher.js`. CI runs these on PRs.
+- Use CommonJS and built-in Node APIs in the current JS modules. Keep paths relative to the project root. Preserve existing CSV headers and output formats, fail on invalid plans, and do not silently change media approvals or caption timing.
 
 ## Read first
 

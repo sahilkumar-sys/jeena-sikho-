@@ -9,3 +9,11 @@ Completed inputs go in `incoming`; selection/status are in `video-control.csv`; 
 Keep the new `factory-state.js` helper with the runner. The shared `assemble-test-video.js`, subtitle converter/style, Khand font and approved whoosh remain essential. Green-screen settings and the renderer are unchanged.
 
 Linux kernel locks protect the batch. Their files remain on disk while idle; do not delete them. Edit CSV only when no execution is running. Older workflows, test assets and version backups are in `Non-Essential Testing Items`.
+
+## Run and collaborate
+
+Read `AGENTS.md`, `docs/ARCHITECTURE.md`, and `docs/HANDOFF.md` before editing. On Windows, install and start Docker Desktop, then run `./Setup-Portable.ps1` once and `./Start-Heygen.ps1` to start services. The setup uses local `runtime/n8n/.env` credentials. The current production provider path still includes Gemini, so do not start a full automated render until a non-Gemini path is verified. The n8n schedule remains inactive. See `PORTABLE-SETUP.md` for full setup details.
+
+Run the dependency-free tests with `node --test --test-isolation=none caption-grammar.test.js`; check syntax with `node --check video-broll-factory.js` and `node --check publishing/meta-publisher.js`. These run on every pull request through GitHub Actions.
+
+Create a branch such as `codex/caption-fix` for each task. For concurrent agents, create separate worktrees with `git worktree add ../caption-fix -b codex/caption-fix main` (choose a unique branch and path). Commit scoped changes, update `docs/HANDOFF.md` and `docs/ROADMAP.md`, open a pull request, and review it before merging to `main`. Do not push credentials, licensed/private media, source videos, generated renders, runtime data, or the live tracker. These stay in the controlled portable project copy; Git is the source of truth for code, catalogs, rules, and handoff notes.
