@@ -59,12 +59,6 @@
               "name": "max_videos",
               "type": "number",
               "value": 1
-            },
-            {
-              "id": "broll-mode",
-              "name": "broll_mode",
-              "type": "string",
-              "value": "quantity"
             }
           ]
         },
@@ -77,13 +71,11 @@
       "position": [
         -280,
         0
-      ],
-      "notes": "broll_mode: quantity = always render (best approved video, then up to 2 AI stills, then presenter) and list optional Envato clips. quality = do not render when an important moment lacks a good real video; write processed/<job>/envato-needed.md and wait for clips in broll-inbox/<job-id>/.",
-      "notesInFlow": true
+      ]
     },
     {
       "parameters": {
-        "command": "={{ ['node', '/files/heygen-workflow/video-broll-factory.js', '--folder', $json.video_folder, '--control-file', $json.control_file, '--output-root', $json.output_root, '--max-videos', String(Math.max(1, Math.floor(Number($json.max_videos) || 1))), '--broll-mode', String($json.broll_mode || 'quantity').trim().toLowerCase(), '--report-json'].map(value => String.fromCharCode(39) + String(value).replace(/'/g, String.fromCharCode(39,92,39,39)) + String.fromCharCode(39)).join(' ') }}"
+        "command": "={{ ['node', '/files/heygen-workflow/video-broll-factory.js', '--folder', $json.video_folder, '--control-file', $json.control_file, '--output-root', $json.output_root, '--max-videos', String(Math.max(1, Math.floor(Number($json.max_videos) || 1))), '--report-json'].map(value => String.fromCharCode(39) + String(value).replace(/'/g, String.fromCharCode(39,92,39,39)) + String.fromCharCode(39)).join(' ') }}"
       },
       "id": "factory-runner",
       "name": "Run ElevenLabs + LLM + image generation + FFmpeg",

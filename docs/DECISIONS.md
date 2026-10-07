@@ -20,3 +20,9 @@
 - The user chooses **Quality** or **Quantity** per run in n8n. Quality stops before rendering when beats lack a good video and lists the Envato clips needed; Quantity always renders with the best approved fallback and reports weak spots. (Planned Step 3/5; not built yet.)
 - A clip the user drops into a job's B-roll inbox counts as approval (licence and people check confirmed by the user). The factory records source, date, job and file fingerprint when it imports it. (Planned Step 4; not built yet.)
 - Vector re-checking runs locally on the SigLIP2 model (GPU when available): no API credits. E: is read only; clips are copied to a local staging folder in chunks of up to 20 GiB before indexing. The `All panchkarma therepy` folder stays excluded from ordinary E: runs; on 7 October the user asked for it to be indexed separately into `runtime/vector-cache/index/panchkarma-1fps.sqlite` (root = that folder). Indexing it is not approval.
+
+## 2026-10-07 — Quality mode "missing beat" rule (user decisions)
+
+- Only **important** moments count: the planner lists moments where a real video would clearly help (symptom, body part, food, remedy, action, object) but no approved video fits. Greetings, filler and calls to action never stop a video. A planned video shot that the fit check dropped or flagged weak also counts.
+- Quality mode does **not** accept generated stills: a moment that would need one goes on the Envato list instead. To render such a video anyway, run it in Quantity mode (which still allows up to 2 stills).
+- The plan itself is the same in both modes; the mode only decides whether to stop. Switching a waiting job to Quantity therefore re-uses the saved plan (no new planner call).

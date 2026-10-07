@@ -62,9 +62,7 @@ async function fitCheckPlan(plan, queries, verify) {
     if (item.media_type !== 'stock_video') { images.push(item); continue; }
     const fit = decide(item, byId.get(item.id), used, keep, dropBelow, remaining - 1);
     fit.phrase = phraseFor(item, queries);
-    // Timing stays with the detail so a dropped shot can still be listed as a missing beat.
-    details.push({ id: item.id, planned_asset: item.asset_id, start_seconds: item.start_seconds ?? item.start,
-      duration_seconds: item.duration_seconds ?? item.duration, anchor_text: item.anchor_text, ...fit });
+    details.push({ id: item.id, planned_asset: item.asset_id, ...fit });
     if (fit.action === 'dropped') { remaining -= 1; continue; }
     const updated = { ...item, fit };
     if (fit.in_point_seconds !== undefined) updated.in_point_seconds = fit.in_point_seconds;
