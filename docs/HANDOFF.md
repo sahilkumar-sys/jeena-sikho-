@@ -5,6 +5,7 @@ Updated: 2026-10-07 (Asia/Kolkata)
 ## Agent context rule
 
 - Branch `claude/session-log-rule` adds a three-tier context rule to `AGENTS.md`: keep this file short and current, write one log per session in `docs/sessions/` (template in its README), and add `PROJECT.md` / vector-history entries only for material milestones. Details: `docs/sessions/2026-10-07-claude-session-log-rule.md`.
+- B-roll flow review (no code change): ten findings and proposed phases in `docs/sessions/2026-10-07-claude-broll-flow-review.md`; awaiting user choice of what to implement.
 
 ## Fresh-clone bootstrap continuation
 
