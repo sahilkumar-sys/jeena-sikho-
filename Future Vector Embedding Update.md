@@ -1,3 +1,7 @@
+## 7 October 2026: fresh-clone retrieval path
+
+The new `Bootstrap-From-Git.ps1` imports user-supplied, rights-confirmed B-roll into the project gallery and records local ignored approval IDs. `runtime/clone/docker-compose.yml` builds a CPU SigLIP2 service; bootstrap indexes those clips with `vector-index/index_clips.py` and serves a local shortlist to n8n. A clip being indexed is not approval; only the local approval map and tracked approvals enter production retrieval. Four Node tests, PowerShell smoke, and Compose static validation passed. Docker's Linux engine was unavailable here, so CPU image build, public model download, indexing and search are not end-to-end verified. E: and Extended galleries remain separate and unapproved. See `docs/CLONE-SETUP.md` and `docs/HANDOFF.md`.
+
 ## 7 October 2026: fresh-clone retrieval prerequisite
 
 The GitHub source clone does not include `vector-index/local-clips.sqlite`, the SigLIP2 model, bundled Python, or local video files. `docs/CLONE-SETUP.md` now lists these prerequisites explicitly. Code-only Node tests can run from a clone; vector retrieval and rendering require the separately controlled portable asset/runtime copy. No retrieval code, index, or E: gallery was changed by this documentation clarification.
