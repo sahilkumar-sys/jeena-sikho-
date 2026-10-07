@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "contextual_spellings": [
+    { "canonical": "Paa", "aliases": ["Pa"], "adjacent_to": ["Dr", "डॉ", "Kit", "किट"] },
+    { "canonical": "Maa", "aliases": ["Ma"], "adjacent_to": ["Dr", "डॉ", "Kit", "किट"] }
+  ],
+  "protected_terms": ["Dr", "Maa", "Paa", "HIIMS", "Acharya", "Manish"],
+  "abbreviations": ["Dr.", "डॉ.", "Mr.", "Mrs.", "Ms.", "Prof."]
+}

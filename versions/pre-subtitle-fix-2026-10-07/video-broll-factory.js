@@ -20,7 +20,6 @@ const vectorRetrieval = require('./vector-retrieval-client');
 const { convertSrtToAss } = require('./srt-to-styled-ass');
 const { assignSpeechDurations } = require('./speech-duration-planner');
 const { correctionKey, correctCaptionGrammar, parseSrtCues } = require('./caption-grammar');
-const { isCaptionAbbreviation, endsCaptionSentence } = require('./caption-policy');
 
 const VIDEO_EXTENSIONS = new Set(['.mp4', '.mov', '.mkv', '.webm', '.avi', '.m4v']);
 const MAX_BROLL_DURATION_SECONDS = 4.2;
@@ -399,9 +398,7 @@ function createShortCueSrt(transcript, maxWords = 3) {
   };
   for (const entry of words) {
     const previous = group[group.length - 1];
-    // Reserve room for a title and its following name instead of orphaning "Dr.".
-    const reserveName = isCaptionAbbreviation(entry.text) && group.length >= limit - 1;
-    if (previous && (group.length >= limit || reserveName || entry.start - previous.end > 0.42 || endsCaptionSentence(previous.text))) flush();
+    if (previous && (group.length >= limit || entry.start - previous.end > 0.42 || /[.!?।]$/.test(previous.text))) flush();
     group.push(entry);
   }
   flush();

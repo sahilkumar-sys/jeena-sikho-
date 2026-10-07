@@ -18,13 +18,16 @@ Updated: 2026-10-07 (Asia/Kolkata)
 
 ## Current work
 
+- Subtitle fixes are live on `codex/subtitle-fix`: titles keep their names within short cues; contextual `Pa`/`Ma` spellings use `caption-glossary.json`; punctuation is normalized; correction rejects word drops/unrelated rewrites, protected-name/negation changes and changed numeric literals. Cache version 3 includes the glossary. Rollback: `versions/pre-subtitle-fix-2026-10-07/`. Rules: `docs/CAPTIONS.md`; session: `docs/sessions/2026-10-07-codex-subtitle-fix.md`.
+- Verification: 13 focused tests and caption-related JS syntax checks pass. An isolated saved-transcript check changed 60 cues to 57, removed four standalone `Dr.` cues and corrected three `Pa` spellings; correction kept the new timings. This used a local identity-provider stub, not real LLM proofreading. No new provider, transcription, listening/frame review or render; tracker, finished outputs, schedule and publisher untouched. Audio review and a real authorized non-Gemini sample remain required.
+- Prior audit found 23 older top-level caption files matching raw generation with no correction artifacts (`docs/sessions/2026-10-07-codex-subtitle-audit.md`). They remain unchanged. Tiny non-title cues and the separate multiline/phrase-based turmeric v4 style are still outside this fix; `done` jobs do not automatically rerun.
 - Initial source baseline: `main` commit `bce4f21`. Collaboration setup branch: `codex/multi-agent-setup`.
 - `origin` points to `https://github.com/sahilkumar-sys/jeena-sikho-.git`. GitHub reported `private=false` on 2026-10-07. The user explicitly authorized publishing both branches to this public repository. A pre-push check found no tracked credential, runtime, or media paths and no tracked file over 5 MB.
 - The first push returned HTTP 403. After the user granted write access, `main` and `codex/multi-agent-setup` were pushed successfully on 2026-10-07. Both local branches now track their `origin/` counterparts. The setup branch is ready for PR review; it has not been merged.
 - PR [#1](https://github.com/sahilkumar-sys/jeena-sikho-/pull/1) is open from `codex/multi-agent-setup` into `main`. It has not been merged. Review its diff and GitHub Actions result before merging.
 - The earlier fresh-clone audit found that `Setup-Portable.ps1` assumed a complete portable folder. The new clone bootstrap above is the alternative path; it still needs user media and keys, Docker Desktop, and a verified first run.
 - Root `AGENTS.md` is the agent policy; `CLAUDE.md` points to it. Read `docs/ARCHITECTURE.md` and this file before a task.
-- Existing focused tests: `node --test --test-isolation=none caption-grammar.test.js local-media-catalog.test.js` (four passing locally); PR CI also checks JavaScript syntax and the PowerShell clone smoke test. No npm install is required for these tests.
+- Existing focused tests: `node --test --test-isolation=none caption-grammar.test.js local-media-catalog.test.js` (13 passing locally after subtitle fixes); PR CI also checks JavaScript syntax and the PowerShell clone smoke test. No npm install is required for these tests.
 - Local Docker Linux engine and vector search service were unavailable during setup inspection. The existing tracker had two `done` rows. No render, provider call, publishing action, schedule activation, or tracker edit was performed.
 
 ## Boundaries and next action
