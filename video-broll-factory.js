@@ -22,6 +22,7 @@ const { assignSpeechDurations } = require('./speech-duration-planner');
 const { buildReviewSheet } = require('./broll-review-sheet');
 const fitCheck = require('./broll-fit-check');
 const brollMode = require('./broll-mode');
+const inboxImport = require('./broll-inbox-import');
 const { correctionKey, correctCaptionGrammar, parseSrtCues } = require('./caption-grammar');
 const { isCaptionAbbreviation, endsCaptionSentence } = require('./caption-policy');
 
@@ -1056,9 +1057,7 @@ async function processVideo(videoPath, outputRoot, controlRow, onStage = () => {
   const planPath = path.join(workDir, 'broll-plan.json');
   const vectorIndex = path.join(__dirname, 'vector-index', 'local-clips.sqlite');
   const vectorStat = fs.existsSync(vectorIndex) ? fs.statSync(vectorIndex) : null;
-  const localApprovals = path.join(__dirname, 'local-approved-stock-ids.json');
-  const localAssetMap = path.join(__dirname, 'broll-assets', 'local-asset-map.json');
-  const planKey = fingerprint({version: 11, visual_policy: 'video-goal-max-generated-stills-phrase-search-fit-check-missing-beats', drop_below_score: fitCheck.dropBelowScore(), max_generated_stills: maxGeneratedStills(), min_match_score: vectorRetrieval.minMatchScore(), source: sourceHash, transcript: cache.transcript.sha256, duration: info.duration, provider: process.env.LLM_PROVIDER || 'openai', url: process.env.LLM_API_URL || '', model: process.env.LLM_MODEL || '', approval_ids: hash(fs.readFileSync(path.join(__dirname, 'approved-stock-ids.json'))), local_approval_ids: fs.existsSync(localApprovals) ? hash(fs.readFileSync(localApprovals)) : null, local_asset_map: fs.existsSync(localAssetMap) ? hash(fs.readFileSync(localAssetMap)) : null, vector_index: vectorStat ? [vectorStat.size, vectorStat.mtimeMs] : null, transition: process.env.IMAGE_TRANSITION_SECONDS || '0.35'});
+  const planKey = fingerprint({version: 11, visual_policy: 'video-goal-max-generated-stills-phrase-search-fit-check-missing-beats', drop_below_score: fitCheck.dropBelowScore(), max_generated_stills: maxGeneratedStills(), min_match_score: vectorRetrieval.minMatchScore(), source: sourceHash, transcript: cache.transcript.sha256, duration: info.duration, provider: process.env.LLM_PROVIDER || 'openai', url: process.env.LLM_API_URL || '', model: process.env.LLM_MODEL || '', ...approvalFingerprint(), vector_index: vectorStat ? [vectorStat.size, vectorStat.mtimeMs] : null, transition: process.env.IMAGE_TRANSITION_SECONDS || '0.35'});
   let plan;
   if (process.env.REUSE_EXISTING_PLAN !== 'false' && await cachedFile(planPath, cache.plan, planKey)) {
     onStage('plan_reused');
@@ -1071,6 +1070,40 @@ async function processVideo(videoPath, outputRoot, controlRow, onStage = () => {
   }
   return finishJob({ mode, plan, planPath, jobId, videoPath, sourceHash, workDir, outputRoot, outputPath, transcript, transcriptPath,
     captionsPath, info, renderSource, cache, saveCache, transcriptionMeta, controlRow, onStage }, options.steps);
+}
+
+// Approved clips change the plan: an inbox import updates the local files, so the job is re-planned.
+function approvalFingerprint(root = localMedia.root) {
+  const localApprovals = path.join(root, 'local-approved-stock-ids.json');
+  const localAssetMap = path.join(root, 'broll-assets', 'local-asset-map.json');
+  return {
+    approval_ids: hash(fs.readFileSync(path.join(__dirname, 'approved-stock-ids.json'))),
+    local_approval_ids: fs.existsSync(localApprovals) ? hash(fs.readFileSync(localApprovals)) : null,
+    local_asset_map: fs.existsSync(localAssetMap) ? hash(fs.readFileSync(localAssetMap)) : null,
+  };
+}
+
+// Phase 4: copy and approve the clips the user dropped in this job's inbox, then refresh
+// the visual index so the re-plan can find them. Never fails the job by itself.
+async function importJobInbox(jobId, { projectRoot = localMedia.root, inboxDir = brollMode.inboxDir(__dirname, jobId), refresh = vectorRetrieval.refreshIndex } = {}) {
+  const report = await inboxImport.importInbox({ projectRoot, jobId, inboxDir });
+  if (report.imported.length) {
+    localMedia.reload();
+    try {
+      const refreshed = await refresh();
+      report.index_refresh = refreshed.ok ? `ok: ${refreshed.indexed_approved_clips} approved clips indexed`
+        : `warning: ${refreshed.error || `indexer exit ${refreshed.exit_code}`}`;
+    } catch (error) {
+      report.index_refresh = `warning: ${String(error.message || error).slice(0, 160)}`;
+    }
+    process.stdout.write(`BROLL_INBOX_IMPORTED=${report.imported.map(c => `${c.asset_id}:${c.file}`).join(', ')} | index refresh ${report.index_refresh}
+`);
+  }
+  if (report.rejected.length) process.stdout.write(`BROLL_INBOX_REJECTED=${report.rejected.map(c => `${c.file} (${c.reason})`).join('; ')}
+`);
+  if (report.deferred.length) process.stdout.write(`BROLL_INBOX_DEFERRED=${report.deferred.map(c => `${c.file} (${c.reason})`).join('; ')}
+`);
+  return report;
 }
 
 function projectRelative(file) {
@@ -1230,18 +1263,22 @@ async function runBatch() {
   const batch = selected.slice(0, maxVideos);
   const results = [];
   for (const item of batch) {
-    updateRow(item.row, { status: 'processing', stage: 'starting', error_message: '', retry: 'no' });
+    const waitingForBroll = String(item.row.status || '').trim().toLowerCase() === 'needs_broll';
+    updateRow(item.row, { status: 'processing', stage: waitingForBroll ? 'importing_broll_inbox' : 'starting', error_message: '', retry: 'no' });
     writeControlFile(controlFile, control);
+    let inboxReport = null;
     try {
+      if (waitingForBroll) inboxReport = await importJobInbox(item.row.job_id);
       const result = await processVideo(item.video, outputRoot, item.row, (stage, details = {}) => {
         updateRow(item.row, { stage, ...details });
         writeControlFile(controlFile, control);
       }, { mode });
+      if (inboxReport) result.inbox_import = inboxReport;
       results.push(result);
       applyResultToRow(item.row, result);
       writeControlFile(controlFile, control);
     } catch (error) {
-      const failure = { video: item.video, status: 'failed', error: error.message };
+      const failure = { video: item.video, status: 'failed', error: error.message, ...(inboxReport ? { inbox_import: inboxReport } : {}) };
       results.push(failure);
       updateRow(item.row, { status: 'failed', stage: 'failed', error_message: error.message });
       writeControlFile(controlFile, control);
@@ -1268,12 +1305,20 @@ function applyResultToRow(row, result) {
   };
   if (result.status === 'needs_broll') {
     updateRow(row, { ...shared, status: 'needs_broll', stage: 'needs_broll', image_count: '0', output_video_url: '', retry: 'no',
-      error_message: `Quality mode: ${result.missing_beats} important moment(s) need a real video clip, so the video was not rendered. List: ${projectRelative(result.envato_needed)}. Put downloaded clips in ${projectRelative(result.broll_inbox)} and run again (or run this video in Quantity mode).` });
+      error_message: `Quality mode: ${result.missing_beats} important moment(s) need a real video clip, so the video was not rendered. List: ${projectRelative(result.envato_needed)}. Put downloaded clips in ${projectRelative(result.broll_inbox)} and run again (or run this video in Quantity mode).${inboxNote(result.inbox_import)}` });
     return row;
   }
   updateRow(row, { ...shared, status: 'done', stage: 'complete', output_video_url: result.output_video, image_count: result.images,
     completed_at: new Date().toISOString(), error_message: '' });
   return row;
+}
+
+function inboxNote(report) {
+  if (!report) return '';
+  const parts = [];
+  if (report.imported.length) parts.push(`imported ${report.imported.map(c => c.asset_id).join(', ')}`);
+  if (report.rejected.length) parts.push(`rejected ${report.rejected.length} clip(s), reasons in the inbox rejected/ folder`);
+  return parts.length ? ` Inbox this run: ${parts.join('; ')}.` : '';
 }
 
 function batchReport(results, { mode, videos, newlyRegistered, selected, rows, folder, outputRoot }) {
@@ -1321,4 +1366,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createShortCueSrt, registerDiscoveredVideos, rowAllowsProcessing, normalize, stableJobId, probe, sourceOrientation, preparePortraitSource, validatePlan, targetImageCount, slotStart, buildManifest, planBroll, imageSettings, generateImage, transcribe, finishJob, applyResultToRow, batchReport };
+module.exports = { createShortCueSrt, registerDiscoveredVideos, rowAllowsProcessing, normalize, stableJobId, probe, sourceOrientation, preparePortraitSource, validatePlan, targetImageCount, slotStart, buildManifest, planBroll, imageSettings, generateImage, transcribe, finishJob, applyResultToRow, batchReport, importJobInbox, approvalFingerprint };

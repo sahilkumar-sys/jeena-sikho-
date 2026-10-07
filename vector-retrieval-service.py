@@ -7,7 +7,10 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import sqlite3
+import subprocess
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Lock
 
@@ -22,6 +25,7 @@ MODEL = Path(os.environ.get(
         / "models--google--siglip2-base-patch16-224" / "snapshots"
         / "75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2"),
 ))
+REFRESH_TIMEOUT_SECONDS = int(os.environ.get("BROLL_REFRESH_TIMEOUT_SECONDS", "1800"))
 STOP = {"the", "and", "for", "with", "from", "video", "shot", "person", "people", "indian"}
 
 
@@ -143,14 +147,44 @@ def load_clips():
     return clips
 
 
+def tool(name):
+    """ffmpeg/ffprobe: BROLL_FFMPEG/BROLL_FFPROBE, then PATH, then the portable runtime copy."""
+    configured = os.environ.get(f"BROLL_{name.upper()}")
+    if configured:
+        return configured
+    local = ROOT / "runtime" / "tools" / f"{name}.exe"
+    return shutil.which(name) or (str(local) if local.is_file() else name)
+
+
+def refresh_index(allow_cpu):
+    """Index new or changed project-gallery clips, e.g. after an inbox import.
+
+    index_clips.py skips clips already indexed at the current version, so this is
+    quick when only a few files were added. Runs with this service's Python.
+    """
+    progress = ROOT / "runtime" / "vector-cache" / "logs" / "progress-project.json"
+    progress.parent.mkdir(parents=True, exist_ok=True)
+    command = [sys.executable, str(ROOT / "vector-index" / "index_clips.py"),
+               "--root", str(ASSET_ROOT / "broll-assets"), "--db", str(DB),
+               "--ffmpeg", tool("ffmpeg"), "--ffprobe", tool("ffprobe"),
+               "--progress-file", str(progress), "--label", "project gallery (inbox refresh)"]
+    if allow_cpu:
+        command.append("--allow-cpu")
+    done = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                          timeout=REFRESH_TIMEOUT_SECONDS)
+    return done.returncode, (done.stdout + done.stderr)[-1500:]
+
+
 def main():
     os.environ["HF_HUB_OFFLINE"] = "1"
     os.environ["TRANSFORMERS_OFFLINE"] = "1"
     import torch
     from transformers import AutoModel, AutoProcessor
 
-    clips = load_clips()
-    clips_by_id = {clip["id"]: clip for clip in clips}
+    # Swapped as a whole by /refresh; requests read one consistent snapshot.
+    first = load_clips()
+    state = {"clips": first, "by_id": {clip["id"]: clip for clip in first}}
+    refresh_lock = Lock()
     processor = AutoProcessor.from_pretrained(MODEL, local_files_only=True)
     model = AutoModel.from_pretrained(MODEL, local_files_only=True).eval()
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -165,11 +199,36 @@ def main():
             return torch.nn.functional.normalize(vec, dim=-1).cpu().numpy()
 
     class Handler(BaseHTTPRequestHandler):
+        def send_json(self, payload, status=200):
+            body = json.dumps(payload).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def refresh(self):
+            if not refresh_lock.acquire(blocking=False):
+                self.send_error(409, "A refresh is already running")
+                return
+            try:
+                before = len(state["clips"])
+                code, tail = refresh_index(device == "cpu")
+                fresh = load_clips()
+                state.update(clips=fresh, by_id={clip["id"]: clip for clip in fresh})
+                print(f"Refreshed: {before} -> {len(fresh)} approved indexed clips (indexer exit {code})", flush=True)
+                self.send_json({"ok": code == 0, "exit_code": code, "indexed_approved_clips_before": before,
+                                "indexed_approved_clips": len(fresh), "log_tail": tail})
+            except Exception as error:  # report, keep serving the previous snapshot
+                self.send_json({"ok": False, "error": str(error)[:300]}, 500)
+            finally:
+                refresh_lock.release()
+
         def do_GET(self):
             if self.path != "/health":
                 self.send_error(404)
                 return
-            body = json.dumps({"ready": True, "indexed_approved_clips": len(clips)}).encode("utf-8")
+            body = json.dumps({"ready": True, "indexed_approved_clips": len(state["clips"])}).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
@@ -177,6 +236,9 @@ def main():
             self.wfile.write(body)
 
         def do_POST(self):
+            if self.path == "/refresh":
+                self.refresh()
+                return
             if self.path not in ("/search", "/verify"):
                 self.send_error(404)
                 return
@@ -192,6 +254,7 @@ def main():
                 if any(not isinstance(q.get("text"), str) or not 0 < len(q["text"]) <= 500 for q in items):
                     raise ValueError("Invalid query text")
                 top_k = max(1, min(8, int(request.get("top_k", 5))))
+                clips, clips_by_id = state["clips"], state["by_id"]
                 vec = encode([item["text"] for item in items])
                 if self.path == "/verify":
                     exclude = set(request.get("exclude_ids") or [])
@@ -219,7 +282,7 @@ def main():
 
     host = os.environ.get("BROLL_VECTOR_BIND", "127.0.0.1")
     port = int(os.environ.get("BROLL_VECTOR_PORT", "8766"))
-    print(f"Ready: {len(clips)} approved indexed clips on {device}; http://{host}:{port}/search and /verify", flush=True)
+    print(f"Ready: {len(state['clips'])} approved indexed clips on {device}; http://{host}:{port}/search, /verify and /refresh", flush=True)
     ThreadingHTTPServer((host, port), Handler).serve_forever()
 
 

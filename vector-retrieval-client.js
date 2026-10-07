@@ -96,4 +96,14 @@ async function verifyShots(shots, excludeIds = [], url = process.env.BROLL_RETRI
   if (!Array.isArray(data.results) || data.results.length !== shots.length) throw Error('invalid fit check response');
   return data.results;
 }
-module.exports = { queriesFromWords, available, shortlistQueries, shortlist, formatShortlist, minMatchScore, verifyShots, DEFAULT_MIN_MATCH_SCORE };
+// Inbox import: ask the host service to index new project-gallery clips and reload them.
+async function refreshIndex(url = process.env.BROLL_RETRIEVAL_URL || 'http://host.docker.internal:8766/search') {
+  const endpoint = new URL(url); endpoint.pathname = '/refresh';
+  const seconds = Math.max(30, Number(process.env.BROLL_REFRESH_TIMEOUT_SECONDS) || 1800);
+  const response = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}', signal: AbortSignal.timeout(seconds * 1000) });
+  if (response.status === 404) throw Error('the vector service is an older version without /refresh; restart Start-Vector-Retrieval.cmd');
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok && !data.error) throw Error(`refresh HTTP ${response.status}`);
+  return data;
+}
+module.exports = { queriesFromWords, available, shortlistQueries, shortlist, formatShortlist, minMatchScore, verifyShots, refreshIndex, DEFAULT_MIN_MATCH_SCORE };
