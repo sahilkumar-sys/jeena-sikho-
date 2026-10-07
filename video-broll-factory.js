@@ -1152,6 +1152,8 @@ async function finishJob(job, steps = {}) {
     broll_mix: plan.coverage,
     missing_beats: beats.length,
     envato_needed: envato?.markdown || null,
+    // Short form for the n8n report; the full list is in envato-needed.md.
+    envato_moments: beats.slice(0, 20).map(beat => ({ time: beat.time, show: beat.english, search: beat.search_terms[0] || '' })),
     duration_seconds: info.duration,
     elevenlabs_audio_minutes: transcriptionMeta.audioMinutes,
     elevenlabs_cost_usd: transcriptionMeta.estimatedCostUsd,
