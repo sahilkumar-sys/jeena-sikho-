@@ -1,3 +1,7 @@
+## 7 October 2026: GitHub access gate
+
+The user authorized publishing this project to the public `sahilkumar-sys/jeena-sikho-` GitHub repository, but the first push failed with HTTP 403 because the PC's configured `shaluji1111` account lacks write access. No branch has been published. The Git remote is connected locally; `docs/HANDOFF.md` has the retry steps after access is granted. Retrieval code and indexes were not changed.
+
 ## 7 October 2026: collaboration handoff
 
 The live project root now has local Git history. `main` holds source baseline `bce4f21`; multi-agent setup is on `codex/multi-agent-setup` awaiting PR review. Read root `AGENTS.md`, `docs/ARCHITECTURE.md`, and `docs/HANDOFF.md` for current branch, commands, provider boundary, and remaining work. The index database, model, local media and runtime are intentionally outside Git; they remain in the controlled portable project copy. Retrieval implementation and E: approval status below are unchanged. The vector service was unavailable during this documentation setup, so retrieval was not revalidated.
