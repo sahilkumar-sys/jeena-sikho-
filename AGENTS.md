@@ -4,10 +4,15 @@ This is the live, portable Heygen video factory. Resolve the project root from t
 
 ## Shared project workflow
 
-- Before any task, read `AGENTS.md`, `docs/ARCHITECTURE.md`, and `docs/HANDOFF.md`, then the newest dated sections of the two project histories below. If documentation and code disagree, trust the code and fix the documentation.
+- Before any task, read `AGENTS.md`, `docs/ARCHITECTURE.md`, and `docs/HANDOFF.md`, then the newest dated sections of the two project histories below. Open a `docs/sessions/` log only when the handoff points to it or your task touches that area. If documentation and code disagree, trust the code and fix the documentation.
 - Work on a separate branch named `<agent-name>/<task>`; never implement directly on `main`. Use a separate Git worktree when agents work concurrently. Review a PR before merging to `main`.
 - Keep work scoped. Ask before adding dependencies or touching unrelated modules. Never commit secrets.
 - Before finishing a session, run the relevant tests and update `docs/HANDOFF.md` and `docs/ROADMAP.md` with actual status and next steps.
+- **Leave context for the next agent, in three tiers, so it stays cheap to read:**
+  1. `docs/HANDOFF.md` (always read): the *current state*, not a diary. Rewrite or replace stale bullets instead of appending; keep it under about 80 lines. Link to the session log for details.
+  2. `docs/sessions/YYYY-MM-DD-<agent>-<task>.md` (read only when relevant): one short file per session using the template in `docs/sessions/README.md` — request, what changed, what ran and its result, what was not verified, open questions. Write it even for read-only or aborted sessions if a decision or finding came out of it. Find past logs with `ls docs/sessions` or a grep; do not read them all by default.
+  3. `PROJECT.md` and `Future Vector Embedding Update.md` (newest section only): one dated entry per *material milestone* (behaviour, provider, approval, or retrieval change), not per session. Do not add a new entry that only repeats status already stated; edit the latest entry instead.
+- Commit messages and PR descriptions are also context: say what changed and why.
 - Git is the source of truth for code, catalogs, rules, and handoffs. Large licensed/private media, live tracker state, renders, runtime data, and credentials are local and ignored by Git; preserve and share them through the portable project copy under controlled access.
 
 ## Stack, map, and commands
@@ -58,6 +63,6 @@ The completed no-Gemini sample is `horizontal example.mp4`: 53.333 seconds; eigh
 2. For code changes, preserve a rollback copy under `versions/`, edit the live root, and run focused syntax/tests. Keep the n8n schedule inactive unless the user asks to activate it.
 3. For a sample, use a private input/tracker/output or another isolated path. Do not change completed `processed/` files or live CSV rows just to demonstrate a new edit. Reuse a valid saved ElevenLabs transcript when appropriate; call ElevenLabs when a fresh transcript is necessary and authorized by the task.
 4. Validate exact asset IDs, shot timing, uniqueness, source audio, captions, and output with `ffprobe` plus representative frame review. Confirm 1080×1920 H.264/AAC and source-length alignment. Report what actually ran and what was not exercised.
-5. Update the top of `PROJECT.md` and `Future Vector Embedding Update.md` after material changes so a new chat can resume without reading the entire history. Put the final paths and verification limits there.
+5. Write the session log in `docs/sessions/` and refresh `docs/HANDOFF.md`. After material changes, also update the top of `PROJECT.md` and `Future Vector Embedding Update.md` so a new chat can resume without reading the entire history. Put the final paths and verification limits there.
 
 For Docker setup, see `PORTABLE-SETUP.md`, `video-broll-factory-README.md`, and `runtime/n8n/docker-compose.yml`. The current n8n schedule was left inactive. Never print or copy values from `runtime/n8n/.env` into chat or documentation.

@@ -2,6 +2,10 @@
 
 Updated: 2026-10-07 (Asia/Kolkata)
 
+## Agent context rule
+
+- Branch `claude/session-log-rule` adds a three-tier context rule to `AGENTS.md`: keep this file short and current, write one log per session in `docs/sessions/` (template in its README), and add `PROJECT.md` / vector-history entries only for material milestones. Details: `docs/sessions/2026-10-07-claude-session-log-rule.md`.
+
 ## Fresh-clone bootstrap continuation
 
 - On `codex/multi-agent-setup`, added `Bootstrap-From-Git.ps1` and `runtime/clone/` as a separate path for a new GitHub clone. A user supplies a media folder and ElevenLabs/OpenAI keys; the script imports media without overwriting, creates ignored local clip approvals after rights confirmation, creates a private non-Gemini `.env` after explicit OpenAI Images API authorization, and prepares Docker n8n plus optional CPU SigLIP2 indexing. The imported workflow remains inactive and automatic processing is false. No real provider call or render was made.
