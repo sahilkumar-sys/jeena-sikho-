@@ -5,7 +5,15 @@ Updated: 2026-10-07 (Asia/Kolkata)
 ## Agent context rule
 
 - Branch `claude/session-log-rule` adds a three-tier context rule to `AGENTS.md`: keep this file short and current, write one log per session in `docs/sessions/` (template in its README), and add `PROJECT.md` / vector-history entries only for material milestones. Details: `docs/sessions/2026-10-07-claude-session-log-rule.md`.
-- B-roll flow review (no code change): ten findings and proposed phases in `docs/sessions/2026-10-07-claude-broll-flow-review.md`; awaiting user choice of what to implement.
+- B-roll flow review: ten findings in `docs/sessions/2026-10-07-claude-broll-flow-review.md`.
+
+## B-roll Phase 1 (branch `claude/broll-phase1`, from `codex/subtitle-fix`)
+
+- User decisions (see `docs/DECISIONS.md`): goal 100% video B-roll; at most 2 generated stills per reel, real product/social/hospital photos exempt; Quality/Quantity mode chosen in n8n; dropping a clip in a job inbox counts as approval.
+- Built: 1 fps re-index with JSON progress (`--progress-file`, `Show-Index-Progress.cmd`); phrase-based search windows; calibrated match floor 0.18 (`BROLL_MIN_MATCH_SCORE`); 3-second window scoring and in-points in the service; keyword fallback with `BROLL_RETRIEVAL_WARNING` when the vector service is down (planner never loses the video catalog); generated-still cap enforced in `validatePlan` (`BROLL_MAX_GENERATED_STILLS`, default 2); B-roll mix in `plan.coverage`; `broll-contact-sheet.jpg` + `broll-review.md` per job before render. Fixed: shortlist dropped clone-imported `U####` IDs. Plan cache version 9 forces re-planning.
+- Indexes (ignored, local): project gallery re-indexed 56/56 at 1 fps in `vector-index/local-clips.sqlite` (backup `vector-index/local-clips.pre-1fps-2026-10-07.sqlite`). E: `Envato Stocks` (Panchakarma excluded, ~5 GB, one chunk) indexed into `runtime/vector-cache/index/envato-1fps.sqlite`; E: was only read. E: clips remain unapproved and unused by production.
+- Not built yet: fit check (Phase 2), Quality/Quantity modes, Envato-needed list and inbox import, n8n `broll_mode` field. Not verified: real planner LLM call, render, n8n. The live service runs the old service code until this branch is merged and `Start-Vector-Retrieval.cmd` is restarted (old code is compatible with the new index).
+- Details: `docs/sessions/2026-10-07-claude-broll-phase1.md`.
 
 ## Fresh-clone bootstrap continuation
 

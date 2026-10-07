@@ -13,3 +13,10 @@
 - Accept only user-supplied, rights-confirmed B-roll into ignored local approval files. Never treat indexing alone as approval. Preserve existing media and private `.env` on repeat runs.
 - Keep setup separate from execution. The imported n8n schedule and automatic processing remain off; publishing still requires per-video approval.
 - The new private environment selects OpenAI text and, after explicit authorization, OpenAI Images API for unattended stills. Codex's in-chat image tool is available to an agent-led sample but cannot run as a scheduled script. The old portable Gemini settings are not modified.
+
+## 2026-10-07 — B-roll goal and modes (user decisions)
+
+- Goal is 100% video B-roll. Generated/generic stills are for dire cases only, at most 2 per reel. Exact real photos (named-product packs, YouTube/Facebook profile, HIIMS hospital) do not count toward that limit. If nothing fits, the presenter stays on screen rather than a weak visual.
+- The user chooses **Quality** or **Quantity** per run in n8n. Quality stops before rendering when beats lack a good video and lists the Envato clips needed; Quantity always renders with the best approved fallback and reports weak spots. (Planned Step 3/5; not built yet.)
+- A clip the user drops into a job's B-roll inbox counts as approval (licence and people check confirmed by the user). The factory records source, date, job and file fingerprint when it imports it. (Planned Step 4; not built yet.)
+- Vector re-checking runs locally on the SigLIP2 model (GPU when available): no API credits. E: is read only; clips are copied to a local staging folder in chunks of up to 20 GiB before indexing. The `All panchkarma therepy` folder stays excluded.

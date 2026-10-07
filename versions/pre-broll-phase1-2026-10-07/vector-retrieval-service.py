@@ -29,39 +29,6 @@ def tokens(value):
     return {x for x in re.findall(r"[a-z]{3,}", value.casefold()) if x not in STOP}
 
 
-SHOT_WINDOW_SECONDS = 3.0
-
-
-def best_window(frame_scores, frame_times):
-    """Best mean score over a typical shot length; returns (start frame index, score).
-
-    Dense (1 fps) indexes reward a clip whose matching action lasts a whole shot,
-    not a single lucky frame. Sparse legacy indexes fall back to the best frame.
-    """
-    times = np.asarray(frame_times, dtype=float)
-    if len(frame_scores) < 2 or len(times) != len(frame_scores) or np.median(np.diff(times)) > 1.5:
-        index = int(np.argmax(frame_scores))
-        return index, float(frame_scores[index])
-    best_index, best_score = 0, -1e9
-    # Only windows that still have a full shot of footage after them (whole clip if shorter).
-    last_start = max(times[0], times[-1] - SHOT_WINDOW_SECONDS + 1.0)
-    for start in range(len(frame_scores)):
-        if times[start] > last_start:
-            break
-        end = int(np.searchsorted(times, times[start] + SHOT_WINDOW_SECONDS, side="left"))
-        score = float(np.mean(frame_scores[start:max(end, start + 1)]))
-        if score > best_score:
-            best_index, best_score = start, score
-    return best_index, best_score
-
-
-def in_point(frame_times, index):
-    """Dense windows start at their own first frame; sparse indexes keep the old lead-in."""
-    times = list(frame_times)
-    dense = len(times) > 1 and float(np.median(np.diff(times))) <= 1.5
-    return round(max(0.0, times[index] - (0.0 if dense else 1.2)), 2)
-
-
 def load_clips():
     approved = set(json.loads((ROOT / "approved-stock-ids.json").read_text(encoding="utf-8")))
     local_approved = ASSET_ROOT / "local-approved-stock-ids.json"
@@ -148,14 +115,15 @@ def main():
                     ranks = []
                     for clip in clips:
                         frame_scores = clip["frames"] @ qvec
-                        frame_index, visual = best_window(frame_scores, clip["frame_times"])
+                        frame_index = int(np.argmax(frame_scores))
+                        visual = float(frame_scores[frame_index])
                         title = float(clip["title_vec"] @ qvec)
                         lexical = len(qtokens & tokens(clip["title"] + " " + clip["description"])) / max(1, len(qtokens))
                         ranks.append((0.7 * visual + 0.1 * title + 0.2 * lexical, clip, frame_index))
                     ranks.sort(key=lambda x: x[0], reverse=True)
                     results.append({"at": query.get("at"), "candidates": [
                         {"id": c["id"], "title": c["title"], "rank_score": round(s, 4),
-                         "in_point_seconds": in_point(c["frame_times"], i)} for s, c, i in ranks[:top_k]]})
+                         "in_point_seconds": round(max(0, c["frame_times"][i] - 1.2), 2)} for s, c, i in ranks[:top_k]]})
                 body = json.dumps({"indexed_approved_clips": len(clips), "results": results}).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")

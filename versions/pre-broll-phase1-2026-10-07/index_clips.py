@@ -1,4 +1,4 @@
-"""Resumable local SigLIP2 index (one frame per second) for B-roll galleries."""
+"""Resumable local four-frame SigLIP2 index for the project's broll-assets gallery."""
 
 from __future__ import annotations
 
@@ -21,11 +21,8 @@ import uuid
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".m4v", ".mkv", ".avi", ".webm"}
 MODEL_ID = "google/siglip2-base-patch16-224"
 MODEL_REVISION = "75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2"
-INDEX_VERSION = "siglip2-base-1fps-v2"
-FRAMES_PER_SECOND = 1.0
-MAX_FRAMES = 120  # Long clips are sampled more sparsely to bound memory and time.
-EMBED_BATCH = 32
-PNG_END = b"IEND\xaeB`\x82"
+INDEX_VERSION = "siglip2-base-4frames-v1"
+FRAME_FRACTIONS = (0.10, 0.35, 0.60, 0.85)
 STAGE_MARKER = ".heygen-indexer-owned-v1"
 EXCLUDED_TOP_LEVEL_FOLDERS = {"all panchkarma therepy"}
 
@@ -242,49 +239,6 @@ def extract_frame(ffmpeg: str, path: str, timestamp: float):
         return image.convert("RGB")
 
 
-def split_pngs(data: bytes) -> list[bytes]:
-    images, start = [], 0
-    while True:
-        end = data.find(PNG_END, start)
-        if end < 0:
-            return images
-        images.append(data[start:end + len(PNG_END)])
-        start = end + len(PNG_END)
-
-
-def extract_frames(ffmpeg: str, path: str, duration: float):
-    """Decode evenly spaced frames in one ffmpeg pass; returns (images, timestamps)."""
-    from PIL import Image
-
-    fps = min(FRAMES_PER_SECOND, MAX_FRAMES / max(duration, 0.001))
-    proc = subprocess.run(
-        [ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error", "-i", path,
-         "-vf", f"fps={fps:.6f}:start_time=0:round=near,scale=448:-2", "-c:v", "png",
-         "-f", "image2pipe", "-"],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=600, check=False,
-    )
-    pngs = split_pngs(proc.stdout)
-    if proc.returncode or not pngs:
-        raise RuntimeError("ffmpeg: " + proc.stderr.decode("utf-8", "replace")[-400:])
-    frames = []
-    for png in pngs[:MAX_FRAMES]:
-        with Image.open(io.BytesIO(png)) as image:
-            frames.append(image.convert("RGB"))
-    timestamps = [round(min(duration - 0.05, index / fps), 3) for index in range(len(frames))]
-    return frames, timestamps
-
-
-def write_progress(path: Path | None, **values) -> None:
-    """Atomically write a small JSON progress counter for people to watch."""
-    if path is None:
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    values["updated_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(values, ensure_ascii=False, indent=2), encoding="utf-8")
-    temporary.replace(path)
-
-
 def preflight(db: sqlite3.Connection, ffmpeg: str, ffprobe: str, report_path: Path) -> bool:
     """Check actual frame bytes before a large model download or long index run."""
     rows = db.execute("SELECT path FROM clips WHERE present=1 ORDER BY path").fetchall()
@@ -345,16 +299,16 @@ def normalized_vector(tensor, torch):
 
 
 def embed_clip(path: str, description: str, duration: float, ffmpeg: str, torch, processor, model, device):
-    import numpy
-
-    frames, timestamps = extract_frames(ffmpeg, path, duration)
+    frames = []
+    timestamps = []
+    for fraction in FRAME_FRACTIONS:
+        timestamp = max(0, min(duration - 0.1, duration * fraction))
+        frames.append(extract_frame(ffmpeg, path, timestamp))
+        timestamps.append(round(timestamp, 3))
     with torch.inference_mode():
-        chunks = []
-        for start in range(0, len(frames), EMBED_BATCH):
-            image_inputs = processor(images=frames[start:start + EMBED_BATCH], return_tensors="pt")
-            image_inputs = {key: value.to(device) for key, value in image_inputs.items()}
-            chunks.append(normalized_vector(model.get_image_features(**image_inputs), torch))
-        image_vectors = numpy.concatenate(chunks)
+        image_inputs = processor(images=frames, return_tensors="pt")
+        image_inputs = {key: value.to(device) for key, value in image_inputs.items()}
+        image_vectors = normalized_vector(model.get_image_features(**image_inputs), torch)
         text_inputs = processor(text=[description], padding="max_length", truncation=True, return_tensors="pt")
         text_inputs = {key: value.to(device) for key, value in text_inputs.items()}
         text_vector = normalized_vector(model.get_text_features(**text_inputs), torch)[0]
@@ -491,7 +445,7 @@ def stage_test(db: sqlite3.Connection, stage_root: Path, max_bytes: int, limit: 
 
 def index_pending(db: sqlite3.Connection, ffmpeg: str, ffprobe: str, allow_cpu: bool,
                   limit: int | None, log_path: Path, stage_root: Path | None,
-                  stage_max_bytes: int, progress_path: Path | None = None, label: str = "index"):
+                  stage_max_bytes: int):
     rows = db.execute(
         """SELECT * FROM clips WHERE present=1 AND
         (status!='complete' OR index_version IS NOT ?) ORDER BY relative_path COLLATE NOCASE""",
@@ -507,12 +461,7 @@ def index_pending(db: sqlite3.Connection, ffmpeg: str, ffprobe: str, allow_cpu: 
     print(f"Total: {total} | already indexed: {complete} | remaining: {total-complete}", flush=True)
     if not rows:
         print("All current clips are indexed.", flush=True)
-        write_progress(progress_path, label=label, state="complete", done=complete, total=total,
-                       percent=100.0, errors=0, eta_seconds=0, current="")
         return
-    write_progress(progress_path, label=label, state="loading model", done=complete, total=total,
-                   percent=round(100 * complete / total, 1) if total else 100.0, errors=0,
-                   eta_seconds=None, current="")
     if stage_root is not None:
         prepare_stage_root(stage_root)
         print(f"Staging in verified batches of up to {stage_max_bytes/2**30:.1f} GiB: {stage_root}", flush=True)
@@ -532,11 +481,6 @@ def index_pending(db: sqlite3.Connection, ffmpeg: str, ffprobe: str, allow_cpu: 
                     if free < batch_bytes + 2 * 2**30:
                         raise RuntimeError(f"Not enough staging space. Need {(batch_bytes+2*2**30)/2**30:.1f} GiB free on {stage_root}")
                     batch_dir = make_batch_dir(stage_root)
-                    write_progress(progress_path, label=label, state=f"copying chunk {batch_number}/{len(batches)}",
-                                   chunk=f"{batch_number}/{len(batches)}", done=complete + done_this_run,
-                                   total=total, percent=round(100 * (complete + done_this_run) / total, 1),
-                                   errors=failures, eta_seconds=None,
-                                   current=f"{len(batch)} clips, {batch_bytes/2**30:.2f} GiB")
                     print(f"\nBatch {batch_number}/{len(batches)}: copying and verifying "
                           f"{len(batch)} clips ({batch_bytes/2**30:.2f} GiB) ...", flush=True)
                     for stage_number, row in enumerate(batch, 1):
@@ -586,11 +530,6 @@ def index_pending(db: sqlite3.Connection, ffmpeg: str, ffprobe: str, allow_cpu: 
                     line = (f"processed {complete+done_this_run}/{total} ({percent:.1f}%) | left {remaining} | "
                             f"ETA {friendly_duration(eta)} | errors {failures} | {outcome} | {short_path}")
                     print(line, flush=True)
-                    write_progress(progress_path, label=label, state="indexing",
-                                   chunk=f"{batch_number}/{len(batches)}", done=complete + done_this_run,
-                                   total=total, percent=round(percent, 1), errors=failures,
-                                   eta_seconds=round(eta) if eta is not None else None,
-                                   current=row["relative_path"][-120:])
                     log.write(json.dumps({"path": row["path"], "outcome": outcome,
                                           "seconds": round(time.monotonic()-clip_started, 2),
                                           "progress": complete+done_this_run, "total": total}, ensure_ascii=False) + "\n")
@@ -599,9 +538,6 @@ def index_pending(db: sqlite3.Connection, ffmpeg: str, ffprobe: str, allow_cpu: 
                 if batch_dir is not None:
                     clean_batch(stage_root, batch_dir)
     print(f"\nRun finished. Indexed this run: {done_this_run-failures}; errors: {failures}.", flush=True)
-    write_progress(progress_path, label=label, state="finished", done=complete + done_this_run, total=total,
-                   percent=round(100 * (complete + done_this_run) / total, 1) if total else 100.0,
-                   errors=failures, eta_seconds=0, current="")
     if limit is not None and total - complete > len(rows):
         print("Test limit reached; remaining clips were not started.", flush=True)
 
@@ -617,9 +553,7 @@ def main() -> int:
     parser.add_argument("--allow-cpu", action="store_true")
     parser.add_argument("--limit", type=int, help="Maximum clips to embed; useful for a pilot")
     parser.add_argument("--stage-dir", type=Path, help="Temporary verified source copies; originals remain untouched")
-    parser.add_argument("--stage-max-gib", type=float, default=20.0)
-    parser.add_argument("--progress-file", type=Path, help="JSON progress counter updated after every clip")
-    parser.add_argument("--label", default="index", help="Name shown in the progress counter")
+    parser.add_argument("--stage-max-gib", type=float, default=10.0)
     parser.add_argument("--stage-test", action="store_true", help="Copy/verify/clean a small batch, without loading the model")
     parser.add_argument("--check-deps", action="store_true", help="Verify installed inference libraries and CUDA")
     args = parser.parse_args()
@@ -656,7 +590,7 @@ def main() -> int:
         if not args.prepare_only:
             index_pending(db, args.ffmpeg, args.ffprobe, args.allow_cpu, args.limit,
                           args.db.parent.parent / "logs" / "indexing.jsonl",
-                          args.stage_dir, int(args.stage_max_gib * 2**30), args.progress_file, args.label)
+                          args.stage_dir, int(args.stage_max_gib * 2**30))
         report_path = args.db.parent.parent / "logs" / "index-errors.txt"
         error_count = write_error_report(db, report_path)
         complete = db.execute(

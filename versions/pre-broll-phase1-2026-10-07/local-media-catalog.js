@@ -88,27 +88,4 @@ function promptProductCatalog() {
     .map(item => `P${item.id}: ${String(item.name).split('|')[0].trim()}`)
     .filter(line => !/P\d+:\s*$/.test(line)).join('\n');
 }
-const KEYWORD_STOP = new Set(['the', 'and', 'for', 'with', 'from', 'that', 'this', 'into', 'about', 'video', 'shot', 'person', 'people', 'indian', 'utc', 'close', 'view']);
-function keywordTokens(value) {
-  return new Set((String(value || '').toLowerCase().match(/[a-z]{3,}/g) || [])
-    .filter(word => !KEYWORD_STOP.has(word))
-    .map(word => word.replace(/(?:ing|ed|es|s)$/, '')).filter(word => word.length >= 3));
-}
-// Keyword fallback when the vector service is down: match English visual
-// queries against approved clip names/folders so the planner never loses video.
-function keywordShortlist(queries, uses = {}, topK = 5) {
-  const clips = Object.entries(stocks).filter(([id, name]) => approvedStockIds.has(id) && fs.existsSync(path.join(stockDir, name)))
-    .map(([id, name]) => ({ id, title: name.replace(/-20\d\d-.+$/, '').replace(/[-_]/g, ' '), tokens: keywordTokens(name.replace(/-20\d\d-.+$/, '')) }));
-  return queries.map(query => {
-    const wanted = keywordTokens(query.text);
-    const needed = Math.min(2, wanted.size);
-    const candidates = wanted.size ? clips.map(clip => {
-      const overlap = [...wanted].filter(word => clip.tokens.has(word)).length;
-      return { id: clip.id, title: clip.title, overlap, score: overlap / wanted.size };
-    }).filter(c => c.overlap >= needed && c.overlap > 0)
-      .sort((a, b) => b.score - a.score || (uses[a.id] || 0) - (uses[b.id] || 0) || a.id.localeCompare(b.id))
-      .slice(0, topK) : [];
-    return { at: query.at, end: query.end, candidates };
-  });
-}
-module.exports = { resolve, promptCatalog, promptProductCatalog, productMatch, keywordShortlist };
+module.exports = { resolve, promptCatalog, promptProductCatalog, productMatch };
