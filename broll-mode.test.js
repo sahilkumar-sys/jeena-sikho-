@@ -81,6 +81,7 @@ test('missing beats: dropped, weak and AI-picture moments plus uncovered planner
   assert.equal(beats[0].english, 'an elderly man with pain in his knees');
   assert.ok(beats[0].search_terms.includes('indian elderly man pain knees'), beats[0].search_terms.join(' / '));
   assert.equal(beats[0].planned_asset, 'B009');
+  assert.deepEqual(brollMode.searchTerms('person injecting insulin with a pen into the stomach').slice(0, 2), ['person injecting insulin with a pen', 'person injecting insulin pen']);
   assert.equal(beats[1].english, 'A glass of warm turmeric milk on an Indian kitchen table');
   assert.equal(beats[0].min_clip_seconds, 5);
   assert.match(beats[0].orientation, /Vertical 9:16/);

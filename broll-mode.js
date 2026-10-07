@@ -46,7 +46,9 @@ function searchTerms(english) {
   const text = String(english || '').replace(/[^A-Za-z0-9' -]+/g, ' ').replace(/\s+/g, ' ').trim();
   if (!text) return [];
   const words = text.split(' ');
-  const full = words.slice(0, 8).join(' ').toLowerCase();
+  const cut = words.slice(0, 8);
+  while (cut.length > 1 && STOP.has(cut[cut.length - 1].toLowerCase())) cut.pop(); // not "...into the"
+  const full = cut.join(' ').toLowerCase();
   const keywords = words.filter(w => !STOP.has(w.toLowerCase()) && w.length > 2 && !/^indian$/i.test(w)).slice(0, 4).join(' ').toLowerCase();
   const terms = [full];
   if (keywords && keywords !== full) terms.push(keywords);

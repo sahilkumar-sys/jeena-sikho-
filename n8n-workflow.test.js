@@ -42,6 +42,9 @@ test('report: needs_broll is a normal result with a plain-English summary', () =
   assert.match(out.summary, /Inbox: imported 1 \(E0003\), rejected 1 \(bad\.mp4: too short\)/);
   assert.match(out.summary, /Still waiting for clips: older\.mp4/);
   assert.doesNotMatch(out.summary, /Still waiting for clips: knee\.mp4/, 'the job handled in this run is not listed twice');
+  const windows = runReport(batch({ ok: true, status: 'needs_broll', results: [{ status: 'needs_broll', video: 'C:\\in\\knee.mp4', missing_beats: 1 }],
+    waiting_for_broll: [{ video: 'knee.mp4', envato_needed: 'x', inbox: 'y' }] }));
+  assert.doesNotMatch(windows.summary, /Still waiting/, 'Windows paths are matched by file name too');
 });
 
 test('report: rendered videos show the B-roll mix and optional clips; failures still stop the workflow', () => {
