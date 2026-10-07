@@ -4,7 +4,7 @@ This is the live, portable Heygen video factory. Resolve the project root from t
 
 ## Shared project workflow
 
-- Before any task, read `AGENTS.md`, `docs/ARCHITECTURE.md`, and `docs/HANDOFF.md`, then the newest dated sections of the two project histories below. Open a `docs/sessions/` log only when the handoff points to it or your task touches that area. If documentation and code disagree, trust the code and fix the documentation.
+- Before any task, read `AGENTS.md`, `docs/ARCHITECTURE.md`, and `docs/HANDOFF.md`, then the newest dated sections of the two project histories below. Open a `docs/sessions/` log only when the handoff points to it or your task touches that area. For any B-roll work, also read `docs/BROLL-PLAN.md`. If documentation and code disagree, trust the code and fix the documentation.
 - Work on a separate branch named `<agent-name>/<task>`; never implement directly on `main`. Use a separate Git worktree when agents work concurrently. Review a PR before merging to `main`.
 - Keep work scoped. Ask before adding dependencies or touching unrelated modules. Never commit secrets.
 - Before finishing a session, run the relevant tests and update `docs/HANDOFF.md` and `docs/ROADMAP.md` with actual status and next steps.
