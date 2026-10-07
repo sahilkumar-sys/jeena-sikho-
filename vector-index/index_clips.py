@@ -275,14 +275,26 @@ def extract_frames(ffmpeg: str, path: str, duration: float):
 
 
 def write_progress(path: Path | None, **values) -> None:
-    """Atomically write a small JSON progress counter for people to watch."""
+    """Atomically write a small JSON progress counter for people to watch.
+
+    Best effort: on Windows the replace fails while a viewer has the file open,
+    so retry briefly and never let the counter stop the indexing itself.
+    """
     if path is None:
         return
-    path.parent.mkdir(parents=True, exist_ok=True)
     values["updated_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(values, ensure_ascii=False, indent=2), encoding="utf-8")
-    temporary.replace(path)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_suffix(path.suffix + ".tmp")
+        temporary.write_text(json.dumps(values, ensure_ascii=False, indent=2), encoding="utf-8")
+        for attempt in range(5):
+            try:
+                temporary.replace(path)
+                return
+            except PermissionError:
+                time.sleep(0.2 * (attempt + 1))
+    except OSError as exc:
+        print(f"(progress counter not updated: {exc})", flush=True)
 
 
 def preflight(db: sqlite3.Connection, ffmpeg: str, ffprobe: str, report_path: Path) -> bool:
