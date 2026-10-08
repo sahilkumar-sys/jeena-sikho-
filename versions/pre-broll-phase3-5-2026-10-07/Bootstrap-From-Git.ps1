@@ -181,7 +181,7 @@ $maps = @(
 foreach ($pair in $maps) {
     if (-not (Test-Path -LiteralPath $pair.path -PathType Leaf) -or -not (Test-Path -LiteralPath $pair.approvals -PathType Leaf)) { continue }
     $map = (Get-Content -LiteralPath $pair.path -Raw | ConvertFrom-Json).assets
-    foreach ($id in @((Get-Content -LiteralPath $pair.approvals -Raw | ConvertFrom-Json))) {
+    foreach ($id in @(Get-Content -LiteralPath $pair.approvals -Raw | ConvertFrom-Json)) {
         $filename = $map.PSObject.Properties[$id].Value
         if ($filename -and (Test-Path -LiteralPath (Join-Path $projectRoot ('broll-assets\' + $filename)) -PathType Leaf)) { $approvedCount += 1 }
     }

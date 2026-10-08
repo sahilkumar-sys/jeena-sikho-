@@ -100,7 +100,7 @@ $utf8 = New-Object System.Text.UTF8Encoding($false)
 $localApprovedPath = Join-Path $destinationRootPath 'local-approved-stock-ids.json'
 $approved = @()
 if (Test-Path -LiteralPath $localApprovedPath -PathType Leaf) {
-    $approved = @((Get-Content -LiteralPath $localApprovedPath -Raw | ConvertFrom-Json))
+    $approved = @(Get-Content -LiteralPath $localApprovedPath -Raw | ConvertFrom-Json)
 }
 if ($ApproveSuppliedBroll) { $approved = @($approved + @($localAssets.Keys) | Sort-Object -Unique) }
 [IO.File]::WriteAllText($localApprovedPath, (ConvertTo-Json -InputObject @($approved) -Depth 4), $utf8)

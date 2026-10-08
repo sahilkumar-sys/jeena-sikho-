@@ -28,7 +28,7 @@ try {
     & $importer -MediaRoot $media -DestinationRoot $clone -ApproveSuppliedBroll
     & $importer -MediaRoot $media -DestinationRoot $clone -ApproveSuppliedBroll
     $map = Get-Content -LiteralPath (Join-Path $clone 'broll-assets\local-asset-map.json') -Raw | ConvertFrom-Json
-    $approved = @((Get-Content -LiteralPath (Join-Path $clone 'local-approved-stock-ids.json') -Raw | ConvertFrom-Json))
+    $approved = @(Get-Content -LiteralPath (Join-Path $clone 'local-approved-stock-ids.json') -Raw | ConvertFrom-Json)
     $mapped = @($map.assets.PSObject.Properties | ForEach-Object { $_.Value })
     if ($mapped.Count -ne 2 -or $mapped -notcontains 'owned-herbs.mp4' -or
         $mapped -notcontains 'herbs/owned-herbs.mp4' -or $approved.Count -ne 2 -or
