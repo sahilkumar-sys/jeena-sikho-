@@ -1,11 +1,26 @@
 # Supplied-video factory
 
-The agreed code fixes are implemented. Read `FACTORY-FIXES.md` for changes, verification and setup. `FACTORY-REVIEW-AND-SETUP.md` is the historical audit, with original Docker setup instructions.
+This project edits an existing presenter video: it transcribes speech with ElevenLabs, plans matching B-roll, adds captions, and renders a vertical MP4. It does not create the presenter performance. The separate `publishing/` flow needs per-video approval.
 
-Import the updated `video-broll-factory-workflow.json` into Docker n8n, supply provider credentials in its environment, and validate one video manually before activating the schedule.
+## New GitHub clone
 
-Completed inputs go in `incoming`; selection/status are in `video-control.csv`; outputs and retry checkpoints go in `processed`. Retries reuse valid matching transcripts, plans and images.
+On Windows, supply your media folder and API keys, then run:
 
-Keep the new `factory-state.js` helper with the runner. The shared `assemble-test-video.js`, subtitle converter/style, Khand font and approved whoosh remain essential. Green-screen settings and the renderer are unchanged.
+```powershell
+./Bootstrap-From-Git.ps1 -MediaRoot 'C:\path\to\your\media'
+```
 
-Linux kernel locks protect the batch. Their files remain on disk while idle; do not delete them. Edit CSV only when no execution is running. Older workflows, test assets and version backups are in `Non-Essential Testing Items`.
+Put source videos in `incoming/` within that folder; optionally add licensed clips in `broll-assets/` and photos matching the existing product/reference catalogs. The script imports them without replacing existing files, prepares a private non-Gemini environment, sets up Docker and local retrieval, and imports the inactive n8n workflow. You must explicitly approve using the OpenAI Images API for unattended stills; Codex's in-chat image tool cannot run inside a scheduled script. Docker Desktop may require first-run system setup. See [clone setup](docs/CLONE-SETUP.md) for details and verification limits.
+
+After setup, review the media and workflow at `http://127.0.0.1:5678` before running a first video. The schedule stays inactive, and rendering does not post to social media. The existing complete-folder setup path remains in `PORTABLE-SETUP.md`.
+
+## Tests and collaboration
+
+Code-only tests need Node.js 24, with no package install:
+
+```powershell
+node --test --test-isolation=none caption-grammar.test.js local-media-catalog.test.js
+./runtime/clone/Test-Bootstrap.ps1
+```
+
+Read `AGENTS.md`, `docs/ARCHITECTURE.md`, and `docs/HANDOFF.md` first. Work on a branch such as `codex/caption-fix`; concurrent agents use separate worktrees, for example `git worktree add ../caption-fix -b codex/caption-fix main`. Update `docs/HANDOFF.md` and `docs/ROADMAP.md`, open a PR, and review before merging to `main`. Git tracks code and shared context; private keys, licensed media, live queue and output stay local.

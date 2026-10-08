@@ -1,6 +1,28 @@
 # Instructions for an LLM working on this project
 
-This is the live, portable Heygen video factory. Resolve the project root from this file's directory; do not assume a fixed Windows user or drive path. The project is bind-mounted into Docker at `/files/heygen-workflow` and is **not a Git repository**. “Main” means the files in this root. Reply to the user in English.
+This is the live, portable Heygen video factory. Resolve the project root from this file's directory; do not assume a fixed Windows user or drive path. The project is bind-mounted into Docker at `/files/heygen-workflow`. Git `main` is the reviewed source baseline; the active code is in this root. Reply to the user in English.
+
+## Shared project workflow
+
+- Before any task, read `AGENTS.md`, `docs/ARCHITECTURE.md`, and `docs/HANDOFF.md`, then the newest dated sections of the two project histories below. Open a `docs/sessions/` log only when the handoff points to it or your task touches that area. For any B-roll work, also read `docs/BROLL-PLAN.md`. If documentation and code disagree, trust the code and fix the documentation.
+- Work on a separate branch named `<agent-name>/<task>`; never implement directly on `main`. Use a separate Git worktree when agents work concurrently. Review a PR before merging to `main`.
+- Keep work scoped. Ask before adding dependencies or touching unrelated modules. Never commit secrets.
+- Before finishing a session, run the relevant tests and update `docs/HANDOFF.md` and `docs/ROADMAP.md` with actual status and next steps.
+- **Leave context for the next agent, in three tiers, so it stays cheap to read:**
+  1. `docs/HANDOFF.md` (always read): the *current state*, not a diary. Rewrite or replace stale bullets instead of appending; keep it under about 80 lines. Link to the session log for details.
+  2. `docs/sessions/YYYY-MM-DD-<agent>-<task>.md` (read only when relevant): one short file per session using the template in `docs/sessions/README.md` — request, what changed, what ran and its result, what was not verified, open questions. Write it even for read-only or aborted sessions if a decision or finding came out of it. Find past logs with `ls docs/sessions` or a grep; do not read them all by default.
+  3. `PROJECT.md` and `Future Vector Embedding Update.md` (newest section only): one dated entry per *material milestone* (behaviour, provider, approval, or retrieval change), not per session. Do not add a new entry that only repeats status already stated; edit the latest entry instead.
+- Commit messages and PR descriptions are also context: say what changed and why.
+- Git is the source of truth for code, catalogs, rules, and handoffs. Large licensed/private media, live tracker state, renders, runtime data, and credentials are local and ignored by Git; preserve and share them through the portable project copy under controlled access.
+
+## Stack, map, and commands
+
+- Node.js 24 (current local version: 24.13.1), built-in `node:test`, no npm package manifest; Python 3.11.16 for SigLIP2 retrieval; n8n 2.40.5 and FFmpeg in Docker. Windows PowerShell scripts manage the portable runtime.
+- Root `*.js` files are the factory, planner, renderer, captions, and local media catalog. `publishing/` is a separate approval-gated publisher. `runtime/n8n/` holds the existing portable Compose; `runtime/clone/` holds fresh-clone setup and tests; `vector-index/` holds the Python indexer; `broll-assets/`, `product-assets/`, and `reference-assets/` hold local media and catalogs. `docs/` is the short shared context; `PROJECT.md` and `Future Vector Embedding Update.md` are dated history.
+- Fresh GitHub clone: supply your own media and API keys, then run `./Bootstrap-From-Git.ps1 -MediaRoot 'C:\path\to\media'` on Windows. It prepares an ignored non-Gemini environment and a Docker-based CPU retrieval runtime. See `docs/CLONE-SETUP.md`. Existing complete portable folder: use `./Setup-Portable.ps1` and `./Start-Heygen.ps1`.
+- Start services: `./Start-Heygen.ps1`; stop: `./Stop-Heygen.ps1`. This does not authorize a production render; see provider boundary below.
+- Test: `node --test --test-isolation=none caption-grammar.test.js local-media-catalog.test.js broll-retrieval.test.js broll-fit-check.test.js` and `./runtime/clone/Test-Bootstrap.ps1` in PowerShell. Syntax check: `node --check video-broll-factory.js` and `node --check publishing/meta-publisher.js`. CI runs these on PRs.
+- Use CommonJS and built-in Node APIs in the current JS modules. Keep paths relative to the project root. Preserve existing CSV headers and output formats, fail on invalid plans, and do not silently change media approvals or caption timing.
 
 ## Read first
 
@@ -22,18 +44,18 @@ This is the live, portable Heygen video factory. Resolve the project root from t
 - Select stock footage only through `approved-stock-ids.json` and `local-media-catalog.js`. A clip being indexed is not approval. Match named products to their actual images in `product-assets/`; never invent packaging or present illustrative footage as real proof of a claim.
 - Never reuse the same video, photo, or audio B-roll asset within one finished reel. The planner and renderer enforce path/byte uniqueness; visually near-duplicate re-encodes still need review. In other reels, prefer a fresh equally relevant clip using `broll-usage-ledger.js`, but factual fit outranks novelty.
 - Align shots to the transcript and phrase endings. Current validation generally allows 2.1–4.2-second shots and requires at least 1.5 seconds of presenter between shots. Preserve original source audio and the approved vertical framing/caption style.
-- `caption-grammar.js` runs after ElevenLabs transcription in the live v7.1 code. Preserve `captions.raw.srt`, cue indices/timestamps, numbers, and spoken meaning. Review Hindi spelling, names, and medical terms against audio; structural validation alone does not prove accurate captions.
+- `caption-grammar.js` runs after ElevenLabs transcription. The 7 October fixes add abbreviation-aware cue building plus `caption-policy.js` and the reviewed `caption-glossary.json`. New cues use original word timestamps; correction must preserve their indices/timestamps, numeric literals, lexical word order, names, negations and spoken meaning. Keep `captions.raw.srt` unchanged. See `docs/CAPTIONS.md` for rules, cache version 3, glossary changes and re-render limits. Review Hindi spelling, names, medical terms and punctuation against audio; conservative validation still cannot prove accurate captions. Do not use the legacy Gemini configuration or overwrite completed outputs to demonstrate a fix.
 
 ## Provider boundary as of 5 October 2026
 
-The user's latest instruction is **do not use Gemini services; use ElevenLabs and Codex image generation for images**. The current automated production runner still has Gemini-configured planning, image, and caption-provider paths. Therefore, do not start a full provider-driven production run under the current configuration. First build and verify an explicitly non-Gemini path, or use an isolated, agent-assisted sample with saved ElevenLabs transcript, Codex-generated stills, local plan/caption validation, and the existing renderer. Do not describe such a sample as a full automated production-provider test.
+The user's latest instruction is **do not use Gemini services; use ElevenLabs and Codex image generation for images**. The legacy portable `.env` remains Gemini-configured; do not start a full provider-driven run with it. The fresh-clone bootstrap creates a separate OpenAI text/image configuration only after explicit image API authorization. Codex's in-chat image tool cannot be called by an unattended script. That clone path has passed offline smoke tests but has not been end-to-end rendered here because Docker's Linux engine is unavailable. Use an isolated, agent-assisted sample with Codex-generated stills if OpenAI Images API use is not authorized. Do not describe either path as an end-to-end provider test without a real verified run.
 
 The completed no-Gemini sample is `horizontal example.mp4`: 53.333 seconds; eight unique B-roll placements (one approved video, three supplied product photos, four Codex-generated stills); 60 timed caption cues with three manual “Dr. Paa” fixes. Its final MP4 is under the task output directory named above. It left the live tracker, n8n schedule, and publisher unchanged.
 
 ## Retrieval and gallery
 
 - The production-approved local project gallery is under `broll-assets/`; `vector-index/local-clips.sqlite` and `vector-retrieval-service.py` provide local SigLIP2 search. The model, Python runtime and environment live under `runtime/vector-cache/`. `Start-Vector-Retrieval.cmd` repairs moved-path metadata and starts the Windows service. `Refresh-Vector-Index.cmd` refreshes the project gallery after additions. Search narrows candidates; a vector similarity is not an 80% semantic-fit probability.
-- `E:\Envato Stocks` is a separate experimental gallery. Its ten-frame index completed 246 of 247 permitted clips; the one error is a zero-byte Heart file. **Exclude the entire `E:\Envato Stocks\All panchkarma therepy` folder from E: indexing and ordinary E: batch work.** Its therapy-named folders were discussed as contextual labels, but no E: clip is thereby production-approved. Do not send thousands of clip descriptions to an LLM; locally retrieve a short candidate list.
+- `E:\Envato Stocks` is a separate experimental gallery. Its 1 fps index (`runtime/vector-cache/index/envato-1fps.sqlite`) has 246 of 247 permitted clips; the one error is a damaged Heart file. **Exclude the entire `E:\Envato Stocks\All panchkarma therepy` folder from ordinary E: indexing and batch work.** On 7 October 2026 the user asked for that folder to be indexed on its own (root = that folder) into `runtime/vector-cache/index/panchkarma-1fps.sqlite`; that index is not approval. Its therapy-named folders were discussed as contextual labels, but no E: clip is thereby production-approved. Do not send thousands of clip descriptions to an LLM; locally retrieve a short candidate list.
 
 ## Safe working sequence
 
@@ -41,6 +63,6 @@ The completed no-Gemini sample is `horizontal example.mp4`: 53.333 seconds; eigh
 2. For code changes, preserve a rollback copy under `versions/`, edit the live root, and run focused syntax/tests. Keep the n8n schedule inactive unless the user asks to activate it.
 3. For a sample, use a private input/tracker/output or another isolated path. Do not change completed `processed/` files or live CSV rows just to demonstrate a new edit. Reuse a valid saved ElevenLabs transcript when appropriate; call ElevenLabs when a fresh transcript is necessary and authorized by the task.
 4. Validate exact asset IDs, shot timing, uniqueness, source audio, captions, and output with `ffprobe` plus representative frame review. Confirm 1080×1920 H.264/AAC and source-length alignment. Report what actually ran and what was not exercised.
-5. Update the top of `PROJECT.md` and `Future Vector Embedding Update.md` after material changes so a new chat can resume without reading the entire history. Put the final paths and verification limits there.
+5. Write the session log in `docs/sessions/` and refresh `docs/HANDOFF.md`. After material changes, also update the top of `PROJECT.md` and `Future Vector Embedding Update.md` so a new chat can resume without reading the entire history. Put the final paths and verification limits there.
 
 For Docker setup, see `PORTABLE-SETUP.md`, `video-broll-factory-README.md`, and `runtime/n8n/docker-compose.yml`. The current n8n schedule was left inactive. Never print or copy values from `runtime/n8n/.env` into chat or documentation.

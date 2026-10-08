@@ -1,4 +1,4 @@
-"""Resumable local four-frame SigLIP2 index for the project's broll-assets gallery."""
+"""Resumable local SigLIP2 index (one frame per second) for B-roll galleries."""
 
 from __future__ import annotations
 
@@ -21,8 +21,12 @@ import uuid
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".m4v", ".mkv", ".avi", ".webm"}
 MODEL_ID = "google/siglip2-base-patch16-224"
 MODEL_REVISION = "75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2"
-INDEX_VERSION = "siglip2-base-4frames-v1"
-FRAME_FRACTIONS = (0.10, 0.35, 0.60, 0.85)
+INDEX_VERSION = "siglip2-base-1fps-v2"
+FRAMES_PER_SECOND = 1.0
+MAX_FRAMES = 120  # Long clips are sampled more sparsely to bound memory and time.
+EMBED_BATCH = 32
+SOURCE_FAILURE_LIMIT = 8  # consecutive OS read errors before stopping to protect a failing source drive
+PNG_END = b"IEND\xaeB`\x82"
 STAGE_MARKER = ".heygen-indexer-owned-v1"
 EXCLUDED_TOP_LEVEL_FOLDERS = {"all panchkarma therepy"}
 
@@ -239,6 +243,68 @@ def extract_frame(ffmpeg: str, path: str, timestamp: float):
         return image.convert("RGB")
 
 
+def split_pngs(data: bytes) -> list[bytes]:
+    images, start = [], 0
+    while True:
+        end = data.find(PNG_END, start)
+        if end < 0:
+            return images
+        images.append(data[start:end + len(PNG_END)])
+        start = end + len(PNG_END)
+
+
+def extract_frames(ffmpeg: str, path: str, duration: float):
+    """Decode evenly spaced frames in one ffmpeg pass; returns (images, timestamps)."""
+    from PIL import Image
+
+    fps = min(FRAMES_PER_SECOND, MAX_FRAMES / max(duration, 0.001))
+
+    def decode(prefix=""):
+        return subprocess.run(
+            [ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error", "-i", path,
+             "-vf", f"{prefix}fps={fps:.6f}:start_time=0:round=near,scale=448:-2", "-c:v", "png",
+             "-f", "image2pipe", "-"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=600, check=False,
+        )
+
+    proc = decode()
+    if proc.returncode and b"Unsupported input" in proc.stderr:
+        # FFmpeg 8 cannot convert untagged 10-bit clips (e.g. ProRes 422 without a transfer tag).
+        proc = decode("setparams=color_trc=bt709,")
+    pngs = split_pngs(proc.stdout)
+    if proc.returncode or not pngs:
+        raise RuntimeError("ffmpeg: " + proc.stderr.decode("utf-8", "replace")[-400:])
+    frames = []
+    for png in pngs[:MAX_FRAMES]:
+        with Image.open(io.BytesIO(png)) as image:
+            frames.append(image.convert("RGB"))
+    timestamps = [round(min(duration - 0.05, index / fps), 3) for index in range(len(frames))]
+    return frames, timestamps
+
+
+def write_progress(path: Path | None, **values) -> None:
+    """Atomically write a small JSON progress counter for people to watch.
+
+    Best effort: on Windows the replace fails while a viewer has the file open,
+    so retry briefly and never let the counter stop the indexing itself.
+    """
+    if path is None:
+        return
+    values["updated_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_suffix(path.suffix + ".tmp")
+        temporary.write_text(json.dumps(values, ensure_ascii=False, indent=2), encoding="utf-8")
+        for attempt in range(5):
+            try:
+                temporary.replace(path)
+                return
+            except PermissionError:
+                time.sleep(0.2 * (attempt + 1))
+    except OSError as exc:
+        print(f"(progress counter not updated: {exc})", flush=True)
+
+
 def preflight(db: sqlite3.Connection, ffmpeg: str, ffprobe: str, report_path: Path) -> bool:
     """Check actual frame bytes before a large model download or long index run."""
     rows = db.execute("SELECT path FROM clips WHERE present=1 ORDER BY path").fetchall()
@@ -299,16 +365,16 @@ def normalized_vector(tensor, torch):
 
 
 def embed_clip(path: str, description: str, duration: float, ffmpeg: str, torch, processor, model, device):
-    frames = []
-    timestamps = []
-    for fraction in FRAME_FRACTIONS:
-        timestamp = max(0, min(duration - 0.1, duration * fraction))
-        frames.append(extract_frame(ffmpeg, path, timestamp))
-        timestamps.append(round(timestamp, 3))
+    import numpy
+
+    frames, timestamps = extract_frames(ffmpeg, path, duration)
     with torch.inference_mode():
-        image_inputs = processor(images=frames, return_tensors="pt")
-        image_inputs = {key: value.to(device) for key, value in image_inputs.items()}
-        image_vectors = normalized_vector(model.get_image_features(**image_inputs), torch)
+        chunks = []
+        for start in range(0, len(frames), EMBED_BATCH):
+            image_inputs = processor(images=frames[start:start + EMBED_BATCH], return_tensors="pt")
+            image_inputs = {key: value.to(device) for key, value in image_inputs.items()}
+            chunks.append(normalized_vector(model.get_image_features(**image_inputs), torch))
+        image_vectors = numpy.concatenate(chunks)
         text_inputs = processor(text=[description], padding="max_length", truncation=True, return_tensors="pt")
         text_inputs = {key: value.to(device) for key, value in text_inputs.items()}
         text_vector = normalized_vector(model.get_text_features(**text_inputs), torch)[0]
@@ -388,6 +454,31 @@ def make_batch_dir(stage_root: Path) -> Path:
     return batch_dir
 
 
+MP4_BOXES = {b"ftyp", b"moov", b"mdat", b"free", b"wide", b"skip", b"pnot", b"uuid"}
+
+
+def check_video_header(path: str) -> None:
+    """Reject damaged/incomplete sources before copying or decoding them.
+
+    Damaged files on the dirty E: exFAT volume keep their size but start with
+    zero bytes instead of a container header; copying them wastes time and reads.
+    """
+    with open(path, "rb") as reader:
+        head = reader.read(12)
+    suffix = Path(path).suffix.lower()
+    if suffix in {".mp4", ".mov", ".m4v"}:
+        ok = len(head) >= 8 and head[4:8] in MP4_BOXES
+    elif suffix in {".mkv", ".webm"}:
+        ok = head[:4] == b"\x1a\x45\xdf\xa3"
+    elif suffix == ".avi":
+        ok = head[:4] == b"RIFF" and head[8:12] == b"AVI "
+    else:
+        ok = bool(head)
+    if not ok:
+        raise RuntimeError("damaged or incomplete source: no valid video header (file starts with "
+                           + (head[:8].hex() or "nothing") + "); skipped without copying")
+
+
 def stage_verified(row, batch_dir: Path) -> Path:
     source = Path(row["path"])
     target = batch_dir / (row["id"] + source.suffix.lower())
@@ -445,7 +536,7 @@ def stage_test(db: sqlite3.Connection, stage_root: Path, max_bytes: int, limit: 
 
 def index_pending(db: sqlite3.Connection, ffmpeg: str, ffprobe: str, allow_cpu: bool,
                   limit: int | None, log_path: Path, stage_root: Path | None,
-                  stage_max_bytes: int):
+                  stage_max_bytes: int, progress_path: Path | None = None, label: str = "index"):
     rows = db.execute(
         """SELECT * FROM clips WHERE present=1 AND
         (status!='complete' OR index_version IS NOT ?) ORDER BY relative_path COLLATE NOCASE""",
@@ -461,13 +552,18 @@ def index_pending(db: sqlite3.Connection, ffmpeg: str, ffprobe: str, allow_cpu: 
     print(f"Total: {total} | already indexed: {complete} | remaining: {total-complete}", flush=True)
     if not rows:
         print("All current clips are indexed.", flush=True)
+        write_progress(progress_path, label=label, state="complete", done=complete, total=total,
+                       percent=100.0, errors=0, eta_seconds=0, current="")
         return
+    write_progress(progress_path, label=label, state="loading model", done=complete, total=total,
+                   percent=round(100 * complete / total, 1) if total else 100.0, errors=0,
+                   eta_seconds=None, current="")
     if stage_root is not None:
         prepare_stage_root(stage_root)
         print(f"Staging in verified batches of up to {stage_max_bytes/2**30:.1f} GiB: {stage_root}", flush=True)
     torch, processor, model, device = load_model(allow_cpu)
     started = time.monotonic()
-    done_this_run = failures = 0
+    done_this_run = failures = source_failures = 0
     log_path.parent.mkdir(parents=True, exist_ok=True)
     batches = list(batch_groups(rows, stage_max_bytes)) if stage_root else [(rows, sum(row["size_bytes"] for row in rows))]
     with log_path.open("a", encoding="utf-8") as log:
@@ -481,20 +577,41 @@ def index_pending(db: sqlite3.Connection, ffmpeg: str, ffprobe: str, allow_cpu: 
                     if free < batch_bytes + 2 * 2**30:
                         raise RuntimeError(f"Not enough staging space. Need {(batch_bytes+2*2**30)/2**30:.1f} GiB free on {stage_root}")
                     batch_dir = make_batch_dir(stage_root)
+                    write_progress(progress_path, label=label, state=f"copying chunk {batch_number}/{len(batches)}",
+                                   chunk=f"{batch_number}/{len(batches)}", done=complete + done_this_run,
+                                   total=total, percent=round(100 * (complete + done_this_run) / total, 1),
+                                   errors=failures, eta_seconds=None,
+                                   current=f"{len(batch)} clips, {batch_bytes/2**30:.2f} GiB")
                     print(f"\nBatch {batch_number}/{len(batches)}: copying and verifying "
                           f"{len(batch)} clips ({batch_bytes/2**30:.2f} GiB) ...", flush=True)
                     for stage_number, row in enumerate(batch, 1):
                         print(f"  Copy {stage_number}/{len(batch)}: {row['relative_path']}", flush=True)
                         try:
+                            check_video_header(row["path"])
                             staged_paths[row["id"]] = stage_verified(row, batch_dir)
+                            source_failures = 0
                         except Exception as exc:
                             stage_errors[row["id"]] = str(exc)
                             print(f"    COPY FAILED: {exc}", flush=True)
+                            # Damaged files are content problems; OS errors in a row mean the drive stopped answering.
+                            source_failures = source_failures + 1 if isinstance(exc, OSError) else 0
+                            if source_failures >= SOURCE_FAILURE_LIMIT:
+                                message = (f"STOPPED: {source_failures} source read errors in a row; the source drive is not "
+                                           "responding. Nothing else was attempted. Check the drive/cable, then rerun to resume.")
+                                print("\n" + message, file=sys.stderr, flush=True)
+                                write_progress(progress_path, label=label, state="stopped: source drive not responding",
+                                               chunk=f"{batch_number}/{len(batches)}", done=complete + done_this_run,
+                                               total=total, percent=round(100 * (complete + done_this_run) / total, 1),
+                                               errors=failures, eta_seconds=None, current=row["relative_path"][-120:])
+                                return
                 for row in batch:
                     clip_started = time.monotonic()
                     try:
                         if row["id"] in stage_errors:
-                            raise RuntimeError("source-to-stage copy failed: " + stage_errors[row["id"]])
+                            raise RuntimeError(stage_errors[row["id"]] if stage_errors[row["id"]].startswith("damaged")
+                                               else "source-to-stage copy failed: " + stage_errors[row["id"]])
+                        if stage_root is None:
+                            check_video_header(row["path"])
                         read_path = str(staged_paths[row["id"]]) if stage_root is not None else row["path"]
                         duration, width, height = probe_video(ffprobe, read_path)
                         vectors = embed_clip(read_path, row["description"], duration, ffmpeg,
@@ -530,6 +647,11 @@ def index_pending(db: sqlite3.Connection, ffmpeg: str, ffprobe: str, allow_cpu: 
                     line = (f"processed {complete+done_this_run}/{total} ({percent:.1f}%) | left {remaining} | "
                             f"ETA {friendly_duration(eta)} | errors {failures} | {outcome} | {short_path}")
                     print(line, flush=True)
+                    write_progress(progress_path, label=label, state="indexing",
+                                   chunk=f"{batch_number}/{len(batches)}", done=complete + done_this_run,
+                                   total=total, percent=round(percent, 1), errors=failures,
+                                   eta_seconds=round(eta) if eta is not None else None,
+                                   current=row["relative_path"][-120:])
                     log.write(json.dumps({"path": row["path"], "outcome": outcome,
                                           "seconds": round(time.monotonic()-clip_started, 2),
                                           "progress": complete+done_this_run, "total": total}, ensure_ascii=False) + "\n")
@@ -538,6 +660,9 @@ def index_pending(db: sqlite3.Connection, ffmpeg: str, ffprobe: str, allow_cpu: 
                 if batch_dir is not None:
                     clean_batch(stage_root, batch_dir)
     print(f"\nRun finished. Indexed this run: {done_this_run-failures}; errors: {failures}.", flush=True)
+    write_progress(progress_path, label=label, state="finished", done=complete + done_this_run, total=total,
+                   percent=round(100 * (complete + done_this_run) / total, 1) if total else 100.0,
+                   errors=failures, eta_seconds=0, current="")
     if limit is not None and total - complete > len(rows):
         print("Test limit reached; remaining clips were not started.", flush=True)
 
@@ -553,7 +678,9 @@ def main() -> int:
     parser.add_argument("--allow-cpu", action="store_true")
     parser.add_argument("--limit", type=int, help="Maximum clips to embed; useful for a pilot")
     parser.add_argument("--stage-dir", type=Path, help="Temporary verified source copies; originals remain untouched")
-    parser.add_argument("--stage-max-gib", type=float, default=10.0)
+    parser.add_argument("--stage-max-gib", type=float, default=20.0)
+    parser.add_argument("--progress-file", type=Path, help="JSON progress counter updated after every clip")
+    parser.add_argument("--label", default="index", help="Name shown in the progress counter")
     parser.add_argument("--stage-test", action="store_true", help="Copy/verify/clean a small batch, without loading the model")
     parser.add_argument("--check-deps", action="store_true", help="Verify installed inference libraries and CUDA")
     args = parser.parse_args()
@@ -590,7 +717,7 @@ def main() -> int:
         if not args.prepare_only:
             index_pending(db, args.ffmpeg, args.ffprobe, args.allow_cpu, args.limit,
                           args.db.parent.parent / "logs" / "indexing.jsonl",
-                          args.stage_dir, int(args.stage_max_gib * 2**30))
+                          args.stage_dir, int(args.stage_max_gib * 2**30), args.progress_file, args.label)
         report_path = args.db.parent.parent / "logs" / "index-errors.txt"
         error_count = write_error_report(db, report_path)
         complete = db.execute(

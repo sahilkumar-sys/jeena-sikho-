@@ -12,13 +12,23 @@ const special = {
 };
 // These local clips show no identifiable foreign people. Expand this list only
 // after visually checking a clip for both its content and cultural fit.
-const approvedStockIds = new Set(require('./approved-stock-ids.json'));
+const approvedStockIds = new Set();
+const stocks = {};
 
 function safeJson(file, fallback) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
   catch { return fallback; }
 }
-const stocks = safeJson(path.join(stockDir, 'asset-map.json'), { assets: {} }).assets || {};
+// Re-read after an inbox import adds local approvals (broll-inbox-import.js).
+function reload() {
+  approvedStockIds.clear();
+  for (const id of [...require('./approved-stock-ids.json'), ...safeJson(path.join(root, 'local-approved-stock-ids.json'), [])]) approvedStockIds.add(id);
+  for (const id of Object.keys(stocks)) delete stocks[id];
+  Object.assign(stocks,
+    safeJson(path.join(stockDir, 'asset-map.json'), { assets: {} }).assets || {},
+    safeJson(path.join(stockDir, 'local-asset-map.json'), { assets: {} }).assets || {});
+}
+reload();
 const products = safeJson(path.join(productDir, 'catalog.json'), []);
 
 function normalize(value) {
@@ -82,4 +92,27 @@ function promptProductCatalog() {
     .map(item => `P${item.id}: ${String(item.name).split('|')[0].trim()}`)
     .filter(line => !/P\d+:\s*$/.test(line)).join('\n');
 }
-module.exports = { resolve, promptCatalog, promptProductCatalog, productMatch };
+const KEYWORD_STOP = new Set(['the', 'and', 'for', 'with', 'from', 'that', 'this', 'into', 'about', 'video', 'shot', 'person', 'people', 'indian', 'utc', 'close', 'view']);
+function keywordTokens(value) {
+  return new Set((String(value || '').toLowerCase().match(/[a-z]{3,}/g) || [])
+    .filter(word => !KEYWORD_STOP.has(word))
+    .map(word => word.replace(/(?:ing|ed|es|s)$/, '')).filter(word => word.length >= 3));
+}
+// Keyword fallback when the vector service is down: match English visual
+// queries against approved clip names/folders so the planner never loses video.
+function keywordShortlist(queries, uses = {}, topK = 5) {
+  const clips = Object.entries(stocks).filter(([id, name]) => approvedStockIds.has(id) && fs.existsSync(path.join(stockDir, name)))
+    .map(([id, name]) => ({ id, title: name.replace(/-20\d\d-.+$/, '').replace(/[-_]/g, ' '), tokens: keywordTokens(name.replace(/-20\d\d-.+$/, '')) }));
+  return queries.map(query => {
+    const wanted = keywordTokens(query.text);
+    const needed = Math.min(2, wanted.size);
+    const candidates = wanted.size ? clips.map(clip => {
+      const overlap = [...wanted].filter(word => clip.tokens.has(word)).length;
+      return { id: clip.id, title: clip.title, overlap, score: overlap / wanted.size };
+    }).filter(c => c.overlap >= needed && c.overlap > 0)
+      .sort((a, b) => b.score - a.score || (uses[a.id] || 0) - (uses[b.id] || 0) || a.id.localeCompare(b.id))
+      .slice(0, topK) : [];
+    return { at: query.at, end: query.end, candidates };
+  });
+}
+module.exports = { resolve, promptCatalog, promptProductCatalog, productMatch, keywordShortlist, reload, root };

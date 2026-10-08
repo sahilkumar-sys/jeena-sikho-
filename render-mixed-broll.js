@@ -3,7 +3,9 @@
 const fs=require('fs'),path=require('path'),crypto=require('crypto'),{spawn,spawnSync}=require('child_process');
 const {TRANSITION_EFFECTS}=require('./broll-transitions');
 function run(command,args){const p=spawnSync(command,args,{encoding:'utf8'});if(p.error||p.status!==0)throw Error(`${command}: ${p.error||p.stderr||p.status}`);return p.stdout}
-function probe(file){const j=JSON.parse(run('ffprobe',['-v','error','-show_entries','format=duration:stream=codec_type,width,height,sample_aspect_ratio:stream_tags=rotate:stream_side_data=rotation','-of','json',file]));const v=j.streams.find(x=>x.width&&x.height);if(!v)throw Error(`No video stream: ${file}`);const rot=Number((v.side_data_list||[]).find(x=>x.rotation!==undefined)?.rotation??v.tags?.rotate??0);const sar=String(v.sample_aspect_ratio||'1:1').split(':').map(Number);const ratio=sar[0]>0&&sar[1]>0?sar[0]/sar[1]:1;const turn=Math.abs(rot)%180===90;return {duration:Number(j.format.duration),width:v.width,height:v.height,displayWidth:turn?v.height:v.width*ratio,displayHeight:turn?v.width*ratio:v.height,rotation:rot,sar:ratio,audio:j.streams.some(x=>x.codec_type==='audio')}}
+function probe(file){const j=JSON.parse(run('ffprobe',['-v','error','-show_entries','format=duration:stream=codec_type,width,height,sample_aspect_ratio,color_transfer:stream_tags=rotate:stream_side_data=rotation','-of','json',file]));const v=j.streams.find(x=>x.width&&x.height);if(!v)throw Error(`No video stream: ${file}`);const rot=Number((v.side_data_list||[]).find(x=>x.rotation!==undefined)?.rotation??v.tags?.rotate??0);const sar=String(v.sample_aspect_ratio||'1:1').split(':').map(Number);const ratio=sar[0]>0&&sar[1]>0?sar[0]/sar[1]:1;const turn=Math.abs(rot)%180===90;return {duration:Number(j.format.duration),width:v.width,height:v.height,displayWidth:turn?v.height:v.width*ratio,displayHeight:turn?v.width*ratio:v.height,rotation:rot,sar:ratio,audio:j.streams.some(x=>x.codec_type==='audio'),trc:v.color_transfer||'unknown'}}
+// FFmpeg 8 cannot convert untagged 10-bit clips (e.g. ProRes 422 with no transfer tag); tag those as BT.709.
+const colorTag=meta=>!meta.trc||meta.trc==='unknown'?'setparams=color_trc=bt709,':'';
 function filterPath(value){return String(value).replace(/\\/g,'/').replace(/:/g,'\\:').replace(/'/g,"\\'").replace(/,/g,'\\,')}
 function fileDigest(file){const hash=crypto.createHash('sha256'),fd=fs.openSync(file,'r'),buf=Buffer.allocUnsafe(1024*1024);try{let n;while((n=fs.readSync(fd,buf,0,buf.length,null))>0)hash.update(buf.subarray(0,n));return hash.digest('hex')}finally{fs.closeSync(fd)}}
 function validate(m,info){
@@ -50,7 +52,7 @@ async function render(m,onProgress=()=>{}){
       const requested=Number.isFinite(p.in_point_seconds)?p.in_point_seconds:(used*2.31);
       const seek=Math.min(maxSeek,Math.max(0,requested));
       args.push('-ss',seek.toFixed(3),'-i',p.path);
-      filters.push(`[${n}:v]fps=25,scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,setsar=1,trim=duration=${p.duration},settb=AVTB,setpts=PTS-STARTPTS,format=rgba[src${i}]`);
+      filters.push(`[${n}:v]${colorTag(meta)}fps=25,scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,setsar=1,trim=duration=${p.duration},settb=AVTB,setpts=PTS-STARTPTS,format=rgba[src${i}]`);
     }else{
       args.push('-loop','1','-framerate','25','-i',p.path);
       const bg=p.category==='social'?'0x161616':'0xF4EEE3';
