@@ -15,6 +15,11 @@ function mediaDuration(file) {
   const value = Number(String(p.stdout).trim());
   return Number.isFinite(value) ? value : 0;
 }
+function colorTag(file) {
+  const p = spawnSync(process.env.FFPROBE_PATH || 'ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=color_transfer', '-of', 'csv=p=0', file], { encoding: 'utf8' });
+  const trc = String(p.stdout || '').trim();
+  return !trc || trc === 'unknown' ? 'setparams=color_trc=bt709,' : '';
+}
 function clock(seconds) {
   const s = Math.max(0, Number(seconds) || 0);
   return `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, '0')}`;
@@ -68,7 +73,7 @@ function buildReviewSheet(placements, plan, workDir) {
   const thumbs = placements.map((p, i) => {
     const out = path.join(dir, `shot-${String(i + 1).padStart(2, '0')}.png`);
     const scale = `scale=${THUMB_W}:${THUMB_H}:force_original_aspect_ratio=increase,crop=${THUMB_W}:${THUMB_H}`;
-    if (p.type === 'video') ffmpeg(['-y', '-v', 'error', '-ss', thumbnailTime(p, mediaDuration(p.path)).toFixed(3), '-i', p.path, '-frames:v', '1', '-vf', scale, out]);
+    if (p.type === 'video') ffmpeg(['-y', '-v', 'error', '-ss', thumbnailTime(p, mediaDuration(p.path)).toFixed(3), '-i', p.path, '-frames:v', '1', '-vf', colorTag(p.path) + scale, out]);
     else ffmpeg(['-y', '-v', 'error', '-i', p.path, '-frames:v', '1', '-vf', `scale=${THUMB_W}:${THUMB_H}:force_original_aspect_ratio=decrease,pad=${THUMB_W}:${THUMB_H}:(ow-iw)/2:(oh-ih)/2:color=0xF4EEE3`, out]);
     return out;
   });

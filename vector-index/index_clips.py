@@ -258,12 +258,19 @@ def extract_frames(ffmpeg: str, path: str, duration: float):
     from PIL import Image
 
     fps = min(FRAMES_PER_SECOND, MAX_FRAMES / max(duration, 0.001))
-    proc = subprocess.run(
-        [ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error", "-i", path,
-         "-vf", f"fps={fps:.6f}:start_time=0:round=near,scale=448:-2", "-c:v", "png",
-         "-f", "image2pipe", "-"],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=600, check=False,
-    )
+
+    def decode(prefix=""):
+        return subprocess.run(
+            [ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error", "-i", path,
+             "-vf", f"{prefix}fps={fps:.6f}:start_time=0:round=near,scale=448:-2", "-c:v", "png",
+             "-f", "image2pipe", "-"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=600, check=False,
+        )
+
+    proc = decode()
+    if proc.returncode and b"Unsupported input" in proc.stderr:
+        # FFmpeg 8 cannot convert untagged 10-bit clips (e.g. ProRes 422 without a transfer tag).
+        proc = decode("setparams=color_trc=bt709,")
     pngs = split_pngs(proc.stdout)
     if proc.returncode or not pngs:
         raise RuntimeError("ffmpeg: " + proc.stderr.decode("utf-8", "replace")[-400:])
