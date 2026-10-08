@@ -4,14 +4,15 @@ Updated: 2026-10-07 (Asia/Kolkata)
 
 ## Start here for B-roll work
 
-- Read `docs/BROLL-PLAN.md`: user decisions, phase status, where the code and runtime are, and how to resume the Panchakarma index. Phases 1–2 are on `claude/broll-phase1` (worktree `C:\Users\js19187\Desktop\heygen-claude-broll`); Phases 3–5 are on `claude/broll-phase3` (worktree `C:\Users\js19187\Desktop\heygen-claude-broll-phase3`, built on top of phase1). Neither is merged; the live folder does not contain them yet.
+- Read `docs/BROLL-PLAN.md`: user decisions, phase status, where the code and runtime are, and how to resume the Panchakarma index. **Merged into `main` on 8 Oct 2026** (PR #2, which also closed PR #1 as merged): clone setup, session-log rule, subtitle fixes and B-roll Phases 1–5.
+- The live folder `C:\Users\js19187\Desktop\heygen workflow` is still on `codex/subtitle-fix` (Codex's working branch), so it does **not** run the new code yet. Next: with Codex idle, switch it to `main`, then restart `Start-Vector-Retrieval.cmd` (needed for `/verify` and `/refresh`). Keep the n8n schedule inactive until a real non-Gemini sample is approved.
 
 ## Agent context rule
 
 - Branch `claude/session-log-rule` adds a three-tier context rule to `AGENTS.md`: keep this file short and current, write one log per session in `docs/sessions/` (template in its README), and add `PROJECT.md` / vector-history entries only for material milestones. Details: `docs/sessions/2026-10-07-claude-session-log-rule.md`.
 - B-roll flow review: ten findings in `docs/sessions/2026-10-07-claude-broll-flow-review.md`.
 
-## B-roll (branches `claude/broll-phase1` → `claude/broll-phase3`, unmerged)
+## B-roll (merged into `main`, 8 Oct 2026)
 
 - User decisions (`docs/DECISIONS.md`): goal 100% video B-roll; at most 2 generated stills per reel (real product/social/hospital photos exempt); Quality/Quantity chosen per run in n8n; a clip dropped in a job inbox counts as approval; in Quality mode only important moments count as missing and generated stills are not accepted.
 - Phase 1 (search): 1 fps re-index, phrase-based queries, match floor 0.18, window scoring, keyword fallback, still cap, B-roll mix, contact sheet + `broll-review.md`. Phase 2 (fit check): service `/verify` keeps/moves/swaps/drops each planned shot. Details: `docs/sessions/2026-10-07-claude-broll-phase1.md`, `...-phase2-fit-check.md`.

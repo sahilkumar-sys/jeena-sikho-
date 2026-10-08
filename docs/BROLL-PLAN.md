@@ -22,13 +22,13 @@ Updated: 2026-10-07 (Asia/Kolkata). Owner of Phases 1–5: Claude. Phases 1–2 
 
 | Phase | Status | Key files |
 |---|---|---|
-| 1 Better search | Done, unmerged | `vector-index/index_clips.py`, `vector-retrieval-client.js`, `vector-retrieval-service.py`, `local-media-catalog.js`, `video-broll-factory.js`, `broll-review-sheet.js`, `Show-Index-Progress.*` |
-| 2 Fit check | Done, unmerged | service `/verify`, `broll-fit-check.js`, `applyFitCheck` in factory |
-| 3 Quality/Quantity | Done, unmerged (`claude/broll-phase3`) | `broll-mode.js`, `finishJob` in factory, n8n Set node |
-| 4 Inbox import | Done, unmerged (`claude/broll-phase3`) | `broll-inbox-import.js`, service `/refresh`, `importJobInbox` in factory |
-| 5 n8n report | Done, unmerged (`claude/broll-phase3`) | `video-broll-factory-workflow.json`, `n8n-workflow.test.js` |
+| 1 Better search | Done, merged | `vector-index/index_clips.py`, `vector-retrieval-client.js`, `vector-retrieval-service.py`, `local-media-catalog.js`, `video-broll-factory.js`, `broll-review-sheet.js`, `Show-Index-Progress.*` |
+| 2 Fit check | Done, merged | service `/verify`, `broll-fit-check.js`, `applyFitCheck` in factory |
+| 3 Quality/Quantity | Done, merged | `broll-mode.js`, `finishJob` in factory, n8n Set node |
+| 4 Inbox import | Done, merged | `broll-inbox-import.js`, service `/refresh`, `importJobInbox` in factory |
+| 5 n8n report | Done, merged | `video-broll-factory-workflow.json`, `n8n-workflow.test.js` |
 | Open finding | needs user decision | non-descriptive clip names (`c4`, Panchakarma `C0166`) lose the keyword/title share of the score and fall below 0.18 even when they fit (`docs/sessions/2026-10-07-claude-broll-e2e-test.md`) |
-| Next | — | merge + restart vector service; one authorized non-Gemini Quality-mode sample; resume Panchakarma after the drive is checked; approve E:/Panchakarma candidates; existing-still search; remove stale provider defaults in `plannerSettings` |
+| Next | — | switch the live folder to `main` (with Codex idle) + restart vector service; one authorized non-Gemini Quality-mode sample; resume Panchakarma after the drive is checked; approve E:/Panchakarma candidates; existing-still search; remove stale provider defaults in `plannerSettings` |
 
 Details: `docs/sessions/2026-10-07-claude-broll-phase1.md`, `...-phase2-fit-check.md`, `...-phase3-5.md`.
 
