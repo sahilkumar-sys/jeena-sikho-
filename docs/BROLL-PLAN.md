@@ -1,12 +1,11 @@
 # B-roll plan and phase status
 
-Updated: 2026-10-07 (Asia/Kolkata). Owner of Phases 1–5: Claude. Phases 1–2 on `claude/broll-phase1`; Phases 3–5 on `claude/broll-phase3` (built on top of it).
+Updated: 2026-10-08 (Asia/Kolkata). Phases 1–5 were built by Claude and merged into `main` on 8 Oct (PR #2). How the pieces fit: `docs/ARCHITECTURE.md`.
 
 ## Where the code is
 
-- Branch `claude/broll-phase1`, checked out in the separate worktree `C:\Users\js19187\Desktop\heygen-claude-broll` (sibling of the live folder). Branch `claude/broll-phase3` (Phases 3–5) is in worktree `C:\Users\js19187\Desktop\heygen-claude-broll-phase3`; it was split off because two Claude sessions were active in the first worktree at once. It is `codex/subtitle-fix` + B-roll commits; the live folder `heygen workflow` is on `codex/subtitle-fix` and does **not** contain this work yet.
-- Ignored runtime (Python venv, SigLIP2 model, indexes, media, logs) lives only in the live folder `C:\Users\js19187\Desktop\heygen workflow`. Run scripts from the worktree with paths pointing at the live folder (examples below).
-- Not pushed to GitHub (pushing would also publish Codex's unpushed `codex/subtitle-fix`). Merge order: PR #1 `codex/multi-agent-setup` → `claude/session-log-rule` → `codex/subtitle-fix` → `claude/broll-phase1` → `claude/broll-phase3`. After merge, restart `Start-Vector-Retrieval.cmd` so the service has `/verify` and `/refresh`.
+- All B-roll code is in `main`; the live folder `C:\Users\js19187\Desktop\heygen workflow` is on `main` (switched 8 Oct). Restart `Start-Vector-Retrieval.cmd` once so the running service has `/verify` and `/refresh`.
+- Ignored runtime (Python venv, SigLIP2 model, indexes, media, logs) lives only in the live folder. When working in a separate worktree, point scripts at the live folder's runtime (examples below).
 
 ## User decisions (binding; also in `docs/DECISIONS.md`)
 
@@ -63,9 +62,9 @@ Details: `docs/sessions/2026-10-07-claude-broll-phase1.md`, `...-phase2-fit-chec
 
 ## Indexing runs and how to resume
 
-- Watch progress: `powershell -NoProfile -ExecutionPolicy Bypass -NoExit -File "C:\Users\js19187\Desktop\heygen-claude-broll\Show-Index-Progress.ps1" -ProjectRoot "C:\Users\js19187\Desktop\heygen workflow"`. Progress JSON: `runtime\vector-cache\logs\progress-*.json`; console log `runtime\vector-cache\logs\panchkarma-console.log`.
+- Watch progress: `powershell -NoProfile -ExecutionPolicy Bypass -NoExit -File "C:\Users\js19187\Desktop\heygen workflow\Show-Index-Progress.ps1" -ProjectRoot "C:\Users\js19187\Desktop\heygen workflow"`. Progress JSON: `runtime\vector-cache\logs\progress-*.json`; console log `runtime\vector-cache\logs\panchkarma-console.log`.
 - The Panchakarma run was started from a chat session and may stop when that session ends. It is resumable (finished clips are kept, leftover staging is cleaned). Resume from PowerShell:
-  `$L='C:\Users\js19187\Desktop\heygen workflow'; $env:HF_HOME="$L\runtime\vector-cache\models"; $env:HF_HUB_OFFLINE='1'; $env:TRANSFORMERS_OFFLINE='1'; $env:PYTHONUTF8='1'; & "$L\runtime\vector-cache\venv\Scripts\python.exe" 'C:\Users\js19187\Desktop\heygen-claude-broll\vector-index\index_clips.py' --root 'E:\Envato Stocks\All panchkarma therepy' --db "$L\runtime\vector-cache\index\panchkarma-1fps.sqlite" --ffmpeg "$L\runtime\tools\ffmpeg.exe" --ffprobe "$L\runtime\tools\ffprobe.exe" --stage-dir "$L\runtime\vector-cache\stage" --stage-max-gib 20 --progress-file "$L\runtime\vector-cache\logs\progress-panchkarma.json" --label 'E: Panchakarma therapy' *>> "$L\runtime\vector-cache\logs\panchkarma-console.log"`
+  `$L='C:\Users\js19187\Desktop\heygen workflow'; $env:HF_HOME="$L\runtime\vector-cache\models"; $env:HF_HUB_OFFLINE='1'; $env:TRANSFORMERS_OFFLINE='1'; $env:PYTHONUTF8='1'; & "$L\runtime\vector-cache\venv\Scripts\python.exe" "$L\vector-index\index_clips.py" --root 'E:\Envato Stocks\All panchkarma therepy' --db "$L\runtime\vector-cache\index\panchkarma-1fps.sqlite" --ffmpeg "$L\runtime\tools\ffmpeg.exe" --ffprobe "$L\runtime\tools\ffprobe.exe" --stage-dir "$L\runtime\vector-cache\stage" --stage-max-gib 20 --progress-file "$L\runtime\vector-cache\logs\progress-panchkarma.json" --label 'E: Panchakarma therapy' *>> "$L\runtime\vector-cache\logs\panchkarma-console.log"`
 - **Panchakarma status (16:11, 7 Oct): 326/1305 indexed, then the E: drive stopped responding.** Windows logged a disk I/O retry and a USB device reset (`UASPStor` 129, `disk` 153); afterwards even 12-byte header reads failed with "I/O device error", and 957 copies failed with `[Errno 22]`. Those clips are not lost from the index plan: errored rows are retried on the next run. In the index DB, 22 files are genuinely damaged (21 zero-filled with no video header, 1 undecodable: `greeva vasti\augest\C0276.MP4`); the list was given to the user.
 - **Do not resume until the user has checked the drive.** The indexer now stops by itself after 8 consecutive OS read errors (`SOURCE_FAILURE_LIMIT`) and writes state `stopped: source drive not responding`.
 - E: health: exFAT "Full Repair Needed"/dirty **and now hardware/connection-level I/O errors**. Advice given to the user: stop using E:, reconnect it on a different USB port/cable (rear port, no hub), check its health (SMART, e.g. CrystalDiskInfo), and **copy irreplaceable data off before running `chkdsk E: /f`**, because chkdsk on failing hardware can make things worse. Agents never write to E:.
@@ -74,4 +73,4 @@ Details: `docs/sessions/2026-10-07-claude-broll-phase1.md`, `...-phase2-fit-chec
 
 - The Claude desktop Terminal panel failed to start (missing `claude-desktop.ps1` shell integration); run long jobs as background commands and give the user the progress-viewer command.
 - GPU: RTX 4060 (CUDA works in the vector venv). Python is not on PATH; use `runtime\vector-cache\venv\Scripts\python.exe`.
-- Codex works in the live folder concurrently; do B-roll work only in the worktree/branch above.
+- Other agents (Codex) may work in the live folder concurrently; make code changes on a new branch in a separate worktree and merge through a PR.
