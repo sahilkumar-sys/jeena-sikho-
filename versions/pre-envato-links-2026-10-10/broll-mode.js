@@ -10,7 +10,6 @@ const fs = require('fs');
 const path = require('path');
 const { atomicWrite, writeJson } = require('./factory-state');
 const { queriesFromWords, phraseAt } = require('./vector-retrieval-client');
-const envatoLinks = require('./envato-links');
 
 const MODES = ['quality', 'quantity'];
 const DEFAULT_MODE = 'quantity';
@@ -105,7 +104,6 @@ function missingBeats(plan, transcriptWords, duration) {
       spoken: spokenBetween(words, beat.start, phrase && phrase.end > beat.start + 0.5 ? phrase.end + 0.01 : end) || phrase?.text || '',
       english: beat.english,
       search_terms: searchTerms(beat.english),
-      envato_search: envatoLinks.envatoSearch(searchTerms(beat.english)),
       min_clip_seconds: Math.ceil(length) + 2, // room to pick the best part
       orientation: ORIENTATION,
       reason: beat.reason,
@@ -141,18 +139,15 @@ function envatoMarkdown(list) {
     '',
     ...head,
     '',
-    ...(list.required
-      ? [`1. Fastest: double-click \`Open-Envato-Links.cmd\` in \`${list.inbox}\`. It opens every Envato Elements search below in your browser, plus a small window that moves your downloads into that folder and labels them with their moment.`,
-        '2. Or click the links in the table, download while logged in to Envato Elements, and put the files in that folder yourself. Download clips at least as long as shown.']
-      : ['1. Click the links in the table and download while logged in to Envato Elements. Clips at least as long as shown.',
-        `2. To use them, put the files in \`${list.inbox}\` and run this video again in Quality mode.`]),
+    `1. Search Envato with the words in the table. Download clips at least as long as shown.`,
+    `2. Put the downloaded files in: \`${list.inbox}\``,
     '3. Run the factory again. It checks, copies and indexes the clips, then plans this video again.',
     '',
     'Putting a clip in that folder means **you approve it**: you have the licence, and any people in it are fine to show (prefer Indian people and settings). Only real video, no AI video.',
     '',
-    '| # | Time | Spoken words | What to show | Envato link | Other search words | Clip length | Why |',
-    '| --- | --- | --- | --- | --- | --- | --- | --- |',
-    ...list.beats.map(b => `| ${b.n} | ${b.time} | ${cell(b.spoken)} | ${cell(b.english)} | ${b.envato_search ? `[vertical](${b.envato_search.vertical}) · [all](${b.envato_search.any})` : ''} | ${cell(b.search_terms.join('; '))} | ≥ ${b.min_clip_seconds} s | ${cell(b.reason)} |`),
+    '| # | Time | Spoken words | What to show | Search Envato for | Clip length | Why |',
+    '| --- | --- | --- | --- | --- | --- | --- |',
+    ...list.beats.map(b => `| ${b.n} | ${b.time} | ${cell(b.spoken)} | ${cell(b.english)} | ${cell(b.search_terms.join('; '))} | ≥ ${b.min_clip_seconds} s | ${cell(b.reason)} |`),
     '',
     `Orientation: ${ORIENTATION}`,
     '',
@@ -165,38 +160,29 @@ function writeEnvatoList(workDir, { video, jobId, mode, inbox }, beats) {
   const markdown = path.join(workDir, 'envato-needed.md');
   writeJson(json, list);
   atomicWrite(markdown, envatoMarkdown(list));
-  const page = envatoLinks.writeLinksPage(workDir, list);
-  return { json, markdown, page, list, count: beats.length, required: list.required };
+  return { json, markdown, count: beats.length, required: list.required };
 }
 
 // Old lists must not linger once every moment is covered.
 function clearEnvatoList(workDir) {
-  for (const name of ['envato-needed.json', 'envato-needed.md', 'envato-links.html']) fs.rmSync(path.join(workDir, name), { force: true });
+  for (const name of ['envato-needed.json', 'envato-needed.md']) fs.rmSync(path.join(workDir, name), { force: true });
 }
 
-function prepareInbox(dir, { video, jobId, envatoMarkdownPath, list = null, projectRoot = null }) {
+function prepareInbox(dir, { video, jobId, envatoMarkdownPath }) {
   fs.mkdirSync(dir, { recursive: true });
-  // One-click opener, links page and the moment list the download collector uses.
-  const helpers = list && projectRoot ? envatoLinks.writeInboxHelpers(dir, list, projectRoot) : null;
   atomicWrite(path.join(dir, 'README.txt'), [
     `B-roll inbox for: ${video}`,
     `Job: ${jobId}`,
     '',
     `The list of clips needed is in: ${envatoMarkdownPath}`,
     '',
-    ...(helpers ? [
-      'FASTEST: double-click Open-Envato-Links.cmd. It opens every Envato Elements search in your browser and a',
-      'small window that moves your downloads into this folder and labels them. Download while logged in to',
-      'Envato; close the window when done. envato-links.html has the same links.',
-      '',
-    ] : []),
     'Put downloaded Envato video files (MP4/MOV) directly in this folder, then run the factory again.',
     'Putting a clip here means you approve it: you have the licence and any people in it are fine to show.',
     'The factory checks each file, copies it into broll-assets/inbox/, records where it came from,',
     'then moves your file into imported/ (or rejected/ with a reason). Real video only, no AI video.',
     '',
   ].join('\r\n'));
-  return { dir, ...(helpers || {}) };
+  return dir;
 }
 
 module.exports = { MODES, DEFAULT_MODE, parseMode, resolveMode, missingBeats, searchTerms, writeEnvatoList, clearEnvatoList, envatoMarkdown, prepareInbox, inboxRoot, inboxDir, inboxClips, ORIENTATION };

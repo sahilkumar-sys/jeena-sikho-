@@ -20,7 +20,7 @@ jobs:
           node --check video-broll-factory.js
           node --check publishing/meta-publisher.js
       - name: Run focused tests
-        run: node --test --test-isolation=none caption-grammar.test.js local-media-catalog.test.js broll-retrieval.test.js broll-fit-check.test.js broll-mode.test.js broll-inbox-import.test.js n8n-workflow.test.js
+        run: node --test --test-isolation=none caption-grammar.test.js local-media-catalog.test.js broll-retrieval.test.js broll-fit-check.test.js broll-mode.test.js broll-inbox-import.test.js n8n-workflow.test.js envato-links.test.js
 
   windows-bootstrap:
     runs-on: windows-latest
@@ -29,3 +29,9 @@ jobs:
       - name: Test clone bootstrap without Docker or credentials
         shell: pwsh
         run: ./runtime/clone/Test-Bootstrap.ps1
+      - name: Test the Envato download collector (PowerShell 7)
+        shell: pwsh
+        run: ./Collect-Envato-Downloads.Test.ps1
+      - name: Test the Envato download collector (Windows PowerShell 5.1)
+        shell: powershell
+        run: ./Collect-Envato-Downloads.Test.ps1

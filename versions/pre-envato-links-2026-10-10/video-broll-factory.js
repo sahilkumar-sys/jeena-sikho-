@@ -1153,8 +1153,7 @@ async function finishJob(job, steps = {}) {
     missing_beats: beats.length,
     envato_needed: envato?.markdown || null,
     // Short form for the n8n report; the full list is in envato-needed.md.
-    envato_moments: beats.slice(0, 20).map(beat => ({ time: beat.time, show: beat.english, search: beat.search_terms[0] || '', link: beat.envato_search?.vertical || null })),
-    envato_links_page: envato?.page || null,
+    envato_moments: beats.slice(0, 20).map(beat => ({ time: beat.time, show: beat.english, search: beat.search_terms[0] || '' })),
     duration_seconds: info.duration,
     elevenlabs_audio_minutes: transcriptionMeta.audioMinutes,
     elevenlabs_cost_usd: transcriptionMeta.estimatedCostUsd,
@@ -1163,11 +1162,10 @@ async function finishJob(job, steps = {}) {
     control_row: job.controlRow || null,
   };
   if (mode === 'quality' && beats.length) {
-    const prepared = brollMode.prepareInbox(inbox, { video: path.basename(job.videoPath), jobId: job.jobId,
-      envatoMarkdownPath: projectRelative(envato.markdown), list: envato.list, projectRoot: __dirname });
-    process.stdout.write(`BROLL_NEEDS_CLIPS=${beats.length} moment(s); not rendered. Inbox: ${inbox}. One click: ${prepared.opener}\n`);
+    brollMode.prepareInbox(inbox, { video: path.basename(job.videoPath), jobId: job.jobId, envatoMarkdownPath: projectRelative(envato.markdown) });
+    process.stdout.write(`BROLL_NEEDS_CLIPS=${beats.length} moment(s); not rendered. Inbox: ${inbox}\n`);
     job.onStage('needs_broll');
-    return { ...common, status: 'needs_broll', output_video: null, images: 0, broll_inbox: inbox, envato_opener: prepared.opener || null };
+    return { ...common, status: 'needs_broll', output_video: null, images: 0, broll_inbox: inbox };
   }
   job.onStage('generating_images');
   const placements = await run.generateBrollImages(plan, job.transcript, info.duration, workDir, job.cache, job.saveCache, job.renderSource.info);
@@ -1309,7 +1307,7 @@ function applyResultToRow(row, result) {
   };
   if (result.status === 'needs_broll') {
     updateRow(row, { ...shared, status: 'needs_broll', stage: 'needs_broll', image_count: '0', output_video_url: '', retry: 'no',
-      error_message: `Quality mode: ${result.missing_beats} important moment(s) need a real video clip, so the video was not rendered. List: ${projectRelative(result.envato_needed)}.${result.envato_opener ? ` One click: double-click ${projectRelative(result.envato_opener)} to open the Envato searches and collect your downloads.` : ''} Put downloaded clips in ${projectRelative(result.broll_inbox)} and run again (or run this video in Quantity mode).${inboxNote(result.inbox_import)}` });
+      error_message: `Quality mode: ${result.missing_beats} important moment(s) need a real video clip, so the video was not rendered. List: ${projectRelative(result.envato_needed)}. Put downloaded clips in ${projectRelative(result.broll_inbox)} and run again (or run this video in Quantity mode).${inboxNote(result.inbox_import)}` });
     return row;
   }
   updateRow(row, { ...shared, status: 'done', stage: 'complete', output_video_url: result.output_video, image_count: result.images,

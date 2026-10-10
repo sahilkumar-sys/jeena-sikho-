@@ -11,7 +11,7 @@ This project edits an existing presenter video: it transcribes speech with Eleve
 5. Choose the mode in n8n (`broll_mode`):
    - **Quantity** (default): always render — best real clip, at most 2 AI pictures, otherwise the presenter.
    - **Quality**: if an important moment has no good real clip, do not render. The job becomes `needs_broll` and `processed/<job>/envato-needed.md` lists what to download (time, spoken words, what to show, Envato search words).
-6. Drop downloaded clips into `broll-inbox/<job-id>/` (this counts as your approval; keep Envato's descriptive file names). The next run checks, imports and indexes them, then plans the video again.
+6. **One click:** double-click `Open-Envato-Links.cmd` in `broll-inbox/<job-id>/`. It opens every Envato Elements search in your browser and a small window that collects your downloads into the inbox and labels them. You download while logged in (Envato does not allow automated downloads). Or drop downloaded clips into `broll-inbox/<job-id>/` yourself (this counts as your approval; keep Envato's descriptive file names). The next run checks, imports and indexes them, then plans the video again.
 7. The final 1080×1920 MP4, a shot picture (`broll-contact-sheet.jpg`) and a review list (`broll-review.md`) are written to `processed/<job>/`.
 
 Details: `docs/ARCHITECTURE.md`; rules for agents: `AGENTS.md`.
@@ -33,8 +33,9 @@ After setup, review the media and workflow at `http://127.0.0.1:5678` before run
 Code-only tests need Node.js 24, with no package install:
 
 ```powershell
-node --test --test-isolation=none caption-grammar.test.js local-media-catalog.test.js broll-retrieval.test.js broll-fit-check.test.js broll-mode.test.js broll-inbox-import.test.js n8n-workflow.test.js
+node --test --test-isolation=none caption-grammar.test.js local-media-catalog.test.js broll-retrieval.test.js broll-fit-check.test.js broll-mode.test.js broll-inbox-import.test.js n8n-workflow.test.js envato-links.test.js
 ./runtime/clone/Test-Bootstrap.ps1
+./Collect-Envato-Downloads.Test.ps1
 ```
 
 Read `AGENTS.md`, `docs/ARCHITECTURE.md`, and `docs/HANDOFF.md` first. Work on a branch such as `codex/caption-fix`; concurrent agents use separate worktrees, for example `git worktree add ../caption-fix -b codex/caption-fix main`. Update `docs/HANDOFF.md` and `docs/ROADMAP.md`, open a PR, and review before merging to `main`. Git tracks code and shared context; private keys, licensed media, live queue and output stay local.
