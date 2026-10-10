@@ -41,6 +41,15 @@ test('report: needs_broll is a normal result with a plain-English summary', () =
   assert.match(out.summary, /0:02\.0-0:05\.0 elderly man with knee pain \| search Envato: "elderly man knee pain"/);
   assert.match(out.summary, /Inbox: imported 1 \(E0003\), rejected 1 \(bad\.mp4: too short\)/);
   assert.match(out.summary, /Still waiting for clips: older\.mp4/);
+  const withLinks = runReport(batch({ ok: true, status: 'needs_broll', broll_mode: 'quality', results: [{
+    status: 'needs_broll', video: '/files/heygen-workflow/incoming/knee.mp4', missing_beats: 1,
+    envato_needed: '/files/heygen-workflow/processed/knee-video-a/envato-needed.md', broll_inbox: '/files/heygen-workflow/broll-inbox/video-a',
+    envato_opener: '/files/heygen-workflow/broll-inbox/video-a/Open-Envato-Links.cmd',
+    envato_moments: [{ time: '0:02.0-0:05.0', show: 'knee pain', search: 'knee pain', link: 'https://elements.envato.com/stock-video/knee-pain/orientation-vertical' }],
+  }] }));
+  assert.match(withLinks.summary, /ONE CLICK: double-click broll-inbox\/video-a\/Open-Envato-Links\.cmd/);
+  assert.match(withLinks.summary, /knee pain \| Envato: https:\/\/elements\.envato\.com\/stock-video\/knee-pain\/orientation-vertical/);
+  assert.deepEqual(withLinks.envato_links, ['https://elements.envato.com/stock-video/knee-pain/orientation-vertical']);
   assert.doesNotMatch(out.summary, /Still waiting for clips: knee\.mp4/, 'the job handled in this run is not listed twice');
   const windows = runReport(batch({ ok: true, status: 'needs_broll', results: [{ status: 'needs_broll', video: 'C:\\in\\knee.mp4', missing_beats: 1 }],
     waiting_for_broll: [{ video: 'knee.mp4', envato_needed: 'x', inbox: 'y' }] }));
