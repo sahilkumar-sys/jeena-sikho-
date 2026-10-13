@@ -148,6 +148,15 @@ test('Quality stops before AI pictures and rendering, writes the Envato list and
     assert.match(markdown, /घुटनों में दर्द रहता है।/);
     assert.ok(fs.existsSync(path.join(inboxRoot, 'video-abc123', 'README.txt')));
     assert.equal(result.broll_inbox, path.join(inboxRoot, 'video-abc123'));
+    // One-click Envato helpers: opener, links page (inbox and job folder) and the collector's moment list.
+    assert.match(markdown, /\[vertical\]\(https:\/\/elements\.envato\.com\/stock-video\/[a-z0-9-]+\/orientation-vertical\)/);
+    assert.equal(result.envato_opener, path.join(inboxRoot, 'video-abc123', 'Open-Envato-Links.cmd'));
+    assert.equal((fs.readFileSync(result.envato_opener, 'utf8').match(/call :open "https:\/\/elements\.envato\.com/g) || []).length, 3);
+    assert.ok(fs.existsSync(path.join(inboxRoot, 'video-abc123', 'envato-links.html')));
+    assert.ok(fs.existsSync(path.join(dir, 'envato-links.html')));
+    assert.equal(JSON.parse(fs.readFileSync(path.join(inboxRoot, 'video-abc123', 'envato-moments.json'), 'utf8')).length, 3);
+    assert.ok(result.envato_moments.every(m => m.link.startsWith('https://elements.envato.com/stock-video/')));
+    assert.match(fs.readFileSync(path.join(inboxRoot, 'video-abc123', 'README.txt'), 'utf8'), /double-click Open-Envato-Links\.cmd/);
   });
 });
 
