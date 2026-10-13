@@ -51,3 +51,13 @@ test('the collector gets each moment with its slug and match words', () => {
   assert.equal(moments[0].slug, 'hands-preparing-insulin-pen');
   assert.ok(moments[0].words.includes('insulin') && moments[0].words.includes('pen') && !moments[0].words.includes('an'));
 });
+
+test('sibling project prefix is not inside the project', () => {
+ const root = path.resolve('/files/heygen-workflow');
+ assert.equal(links.collectorRelativePath(root + '-other/inbox', root), null);
+});
+test('opener deduplicates searches and Quantity page avoids missing opener', () => {
+ const list = {video:'sample',required:false,beats:[beat(1,['insulin pen']),beat(2,['insulin pen'])]};
+ assert.equal((links.openerCmd(list,null).match(/call :open/g)||[]).length,1);
+ assert.doesNotMatch(links.linksHtml(list), /Open-Envato-Links/);
+});

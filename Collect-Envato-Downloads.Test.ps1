@@ -21,11 +21,12 @@ try {
     & (Join-Path $PSScriptRoot 'Collect-Envato-Downloads.ps1') -Inbox ($inbox + '\.') -Downloads $downloads -Once -Since (Get-Date).AddHours(-1) | Out-Null
 
     $inInbox = @(Get-ChildItem -LiteralPath $inbox -File | ForEach-Object { $_.Name })
-    $expected = @('1-insulin-pen--woman-hands-close-up-with-insulin-pen-4X4CT6P.mp4', '2-donuts-sweets--chocolate-donuts-on-a-plate-QW12ER3.mov', 'sunset-over-city-ZZ99YY8.mp4')
+    $expected = @('1-insulin-pen--woman-hands-close-up-with-insulin-pen-4X4CT6P.mp4', '2-donuts-sweets--chocolate-donuts-on-a-plate-QW12ER3.mov')
     foreach ($name in $expected) { if ($inInbox -notcontains $name) { throw "Collector did not produce $name (inbox: $($inInbox -join ', '))" } }
-    foreach ($name in @('invoice.pdf', 'old-insulin-pen-video.mp4')) { if (-not (Test-Path -LiteralPath (Join-Path $downloads $name))) { throw "Collector moved $name, which it must leave alone" } }
-    if (@(Get-Content -LiteralPath (Join-Path $inbox 'collector-log.txt')).Count -ne 3) { throw 'Collector log should record three moves' }
+    foreach ($name in @('invoice.pdf', 'old-insulin-pen-video.mp4', 'sunset-over-city-ZZ99YY8.mp4')) { if (-not (Test-Path -LiteralPath (Join-Path $downloads $name))) { throw "Collector moved $name, which it must leave alone" } }
+    if (@(Get-Content -LiteralPath (Join-Path $inbox 'collector-log.txt')).Count -ne 2) { throw 'Collector log should record two moves' }
     Write-Host 'Envato collector smoke test passed.'
 } finally {
+    if (-not ([IO.Path]::GetFullPath($root)).StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()), [StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe test cleanup path' }
     Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
 }

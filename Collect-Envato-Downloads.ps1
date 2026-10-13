@@ -72,6 +72,7 @@ function Test-Unlocked([string]$path) {
 
 function Add-ToInbox([string]$path, [string]$originalName) {
     $moment = Find-Moment $originalName
+    if (-not $moment) { return } # An unrelated or ambiguous download is not approval.
     $name = if ($moment) { '{0}-{1}--{2}' -f $moment.n, $moment.slug, $originalName } else { $originalName }
     $target = Get-FreePath $inboxPath $name
     Move-Item -LiteralPath $path -Destination $target
@@ -98,7 +99,7 @@ do {
         ($videoExtensions -contains $_.Extension.ToLowerInvariant() -or $_.Extension -ieq '.zip') })
     foreach ($file in $files) {
         # A download is finished when its size is stable between two checks and no program holds it open.
-        $ready = $Once -or ($seenSizes.ContainsKey($file.FullName) -and $seenSizes[$file.FullName] -eq $file.Length -and $file.Length -gt 0)
+        $ready = $file.Length -gt 0 -and ($Once -or ($seenSizes.ContainsKey($file.FullName) -and $seenSizes[$file.FullName] -eq $file.Length -and $file.Length -gt 0))
         $seenSizes[$file.FullName] = $file.Length
         if (-not $ready -or -not (Test-Unlocked $file.FullName)) { continue }
         $handled[$file.FullName] = $true
@@ -110,14 +111,18 @@ do {
                     Add-ToInbox $inner.FullName $inner.Name
                 }
             } catch { Write-Host "  ! Could not unzip $($file.Name): $($_.Exception.Message)" -ForegroundColor Yellow }
-            finally { if (Test-Path -LiteralPath $unzip) { Remove-Item -LiteralPath $unzip -Recurse -Force } }
+            finally {
+                $resolvedUnzip = [IO.Path]::GetFullPath($unzip)
+                if (-not $resolvedUnzip.StartsWith($inboxPath + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe extraction cleanup path' }
+                if (Test-Path -LiteralPath $resolvedUnzip) { Remove-Item -LiteralPath $resolvedUnzip -Recurse -Force }
+            }
             continue
         }
         try { Add-ToInbox $file.FullName $file.Name } catch { Write-Host "  ! Could not move $($file.Name): $($_.Exception.Message)" -ForegroundColor Yellow }
     }
     if ($moments.Count -and $script:covered.Count -ge $moments.Count) {
         Write-Host "`nAll $($moments.Count) moments have a clip. Run the factory again (or let n8n run). You can close this window." -ForegroundColor Cyan
-        $moments = @()  # keep collecting extra clips quietly
+        break # Stop after coverage; do not collect unrelated later downloads.
     }
     if ($Once) { break }
     Start-Sleep -Seconds $PollSeconds

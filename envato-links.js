@@ -46,7 +46,7 @@ a{color:#0b57d0;font-weight:600}.note{background:#fff8e1;border:1px solid #f0d78
 </style></head><body>
 <h1>Envato clips needed — ${escapeHtml(list.video)}</h1>
 <p>${list.required ? '<strong>Quality mode: this video was not rendered.</strong> These moments need a real video clip.' : 'Quantity mode: the video was rendered. These clips are optional upgrades.'}</p>
-<p class="note">Fastest way: double-click <strong>Open-Envato-Links.cmd</strong> in the job's inbox folder. It opens every search below and a small window that moves your downloads into the inbox and labels them. Download while logged in to Envato Elements; clips at least as long as shown; vertical is best. Putting a clip in the inbox means you approve it (licence and people in it).</p>
+<p class="note">${list.required ? 'Fastest way: double-click <strong>Open-Envato-Links.cmd</strong> in the job inbox folder. It opens each unique search below and a small window that collects completed downloads matching these moments. Unmatched downloads stay in Downloads. ' : 'Click the search links below and put any chosen clips into the job inbox. '}Download while logged in to Envato Elements; clips at least as long as shown; vertical is best. Putting a clip in the inbox means you approve it (licence and people in it).</p>
 <table><thead><tr><th>#</th><th>Time</th><th>Spoken words</th><th>What to show</th><th>Envato search</th><th>Length</th></tr></thead><tbody>${rows}
 </tbody></table></body></html>
 `;
@@ -54,7 +54,7 @@ a{color:#0b57d0;font-weight:600}.note{background:#fff8e1;border:1px solid #f0d78
 
 // Windows batch file: opens each search in the browser, then starts the download collector.
 function openerCmd(list, collectorRelative) {
-  const urls = list.beats.map(b => b.envato_search?.vertical).filter(Boolean);
+  const urls = [...new Set(list.beats.map(b => b.envato_search?.vertical).filter(Boolean))];
   for (const url of urls) if (!SAFE_URL.test(url)) throw new Error(`Unsafe Envato URL refused: ${url}`);
   const lines = [
     '@echo off',
@@ -83,7 +83,8 @@ function momentsForCollector(list) {
 // Path from the inbox to the project's collector script, or null when the inbox is outside the project.
 function collectorRelativePath(inboxDir, projectRoot) {
   const relative = path.relative(path.resolve(inboxDir), path.resolve(projectRoot));
-  if (path.isAbsolute(relative) || !path.resolve(inboxDir).startsWith(path.resolve(projectRoot))) return null;
+  const inboxRelative = path.relative(path.resolve(projectRoot), path.resolve(inboxDir));
+  if (path.isAbsolute(relative) || path.isAbsolute(inboxRelative) || inboxRelative === '..' || inboxRelative.startsWith(`..${path.sep}`)) return null;
   return `${relative ? `${relative.split(path.sep).join('\\')}\\` : ''}Collect-Envato-Downloads.ps1`;
 }
 

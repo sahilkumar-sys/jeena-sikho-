@@ -24,3 +24,7 @@ node --test --test-isolation=none caption-grammar.test.js local-media-catalog.te
 ```
 
 Read `AGENTS.md`, `docs/ARCHITECTURE.md`, and `docs/HANDOFF.md` first. Work on a branch such as `codex/caption-fix`; concurrent agents use separate worktrees, for example `git worktree add ../caption-fix -b codex/caption-fix main`. Update `docs/HANDOFF.md` and `docs/ROADMAP.md`, open a PR, and review before merging to `main`. Git tracks code and shared context; private keys, licensed media, live queue and output stay local.
+
+## Envato links for Quality stops
+
+Open `Open-Envato-Links.cmd` in a waiting job’s B-roll inbox to open unique Elements searches and collect matching manual downloads. The HTML page lists the same searches. Download while logged in yourself; unrelated downloads stay in Downloads. Close the collector to stop it, or place chosen files directly into the job inbox. Clips still require factory import, indexing and fit checks before a new Quality run.
